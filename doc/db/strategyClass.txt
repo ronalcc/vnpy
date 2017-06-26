@@ -1,0 +1,44 @@
+{
+    "_id" : ObjectId("5950b4eb67e9eb6345d57cbb"),
+    "strategyName" : "AtrRsiStrategy",
+    "strategyType" : "CTA",
+    "author" : "CHENCHEN",
+    "comment" : "结合ATR和RSI指标的一个分钟线交易策略",
+    "paramList" : [ 
+        {
+            "name" : "atrLength",
+            "label" : "ATR指标的窗口数",
+            "comment" : "计算ATR指标的窗口数"
+        }, 
+        {
+            "name" : "atrMaLength",
+            "label" : "ATR均线的窗口数",
+            "comment" : "计算ATR均线的窗口数"
+        }, 
+        {
+            "name" : "rsiLength",
+            "label" : "RSI的窗口数",
+            "comment" : "计算RSI的窗口数"
+        }, 
+        {
+            "name" : "rsiEntry",
+            "label" : "RSI的开仓信号",
+            "comment" : "RSI的开仓信号"
+        }, 
+        {
+            "name" : "trailingPercent",
+            "label" : "百分比移动止损",
+            "comment" : "百分比移动止损"
+        }, 
+        {
+            "name" : "initDays",
+            "label" : "初始化数据所用的天数",
+            "comment" : "初始化数据所用的天数"
+        }, 
+        {
+            "name" : "fixedSize",
+            "label" : "每次交易的数量",
+            "comment" : "每次交易的数量"
+        }
+    ]
+}

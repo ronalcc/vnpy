@@ -1,0 +1,63 @@
+{
+    "_id" : ObjectId("5950a84e67e9eb6345d5799f"),
+    "strategyName" : "AtrRsiStrategy",
+    "strategyInstanceName" : "strategy1",
+    "status" : "0",
+    "startDate" : "20170617",
+    "endDate" : "20170725",
+    "legs" : [ 
+        {
+            "symbol" : "IF1707"
+        }, 
+        {
+            "symbol" : "IC1707"
+        }, 
+        {
+            "symbol" : "IH1707"
+        }
+    ],
+    "paramList" : [ 
+        {
+            "name" : "atrLength",
+            "value" : "22",
+            "label" : "ATR指标的窗口数",
+            "comment" : "计算ATR指标的窗口数"
+        }, 
+        {
+            "name" : "atrMaLength",
+            "value" : "10",
+            "label" : "计算ATR均线的窗口数",
+            "comment" : "计算ATR均线的窗口数"
+        }, 
+        {
+            "name" : "rsiLength",
+            "value" : "5",
+            "label" : "计算RSI的窗口数",
+            "comment" : "计算RSI的窗口数"
+        }, 
+        {
+            "name" : "rsiEntry",
+            "value" : "16",
+            "label" : "RSI的开仓信号",
+            "comment" : "RSI的开仓信号"
+        }, 
+        {
+            "name" : "trailingPercent",
+            "value" : "0.8",
+            "label" : "百分比移动止损",
+            "comment" : "百分比移动止损"
+        }, 
+        {
+            "name" : "initDays",
+            "value" : "10",
+            "label" : "初始化数据所用的天数",
+            "comment" : "初始化数据所用的天数"
+        }, 
+        {
+            "name" : "fixedSize",
+            "value" : "1",
+            "label" : "每次交易的数量",
+            "comment" : "每次交易的数量"
+        }
+    ]
+}
