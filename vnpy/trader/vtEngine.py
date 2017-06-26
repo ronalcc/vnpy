@@ -43,6 +43,10 @@ class MainEngine(object):
         # 应用模块实例
         self.appDict = OrderedDict()
         self.appDetailList = []
+
+        ##策略模块实例
+        self.strategyDict = OrderedDict()
+        self.strategyDetailList = []
         
         # 风控引擎实例（特殊独立对象）
         self.rmEngine = None
@@ -85,6 +89,23 @@ class MainEngine(object):
         }
         self.appDetailList.append(d)
         
+    #----------------------------------------------------------------------
+    def addStrategy(self, appModule):
+        """添加上层应用"""
+        appName = appModule.appName
+
+        # 创建应用实例
+        self.strategyDict[appName] = appModule.appEngine(self, self.eventEngine)
+
+        # 保存应用信息
+        d = {
+            'appName': appModule.appName,
+            'appDisplayName': appModule.appDisplayName,
+            'appWidget': appModule.appWidget,
+            'appIco': appModule.appIco
+        }
+        self.strategyDetailList.append(d)
+
     #----------------------------------------------------------------------
     def getGateway(self, gatewayName):
         """获取接口"""
@@ -273,7 +294,10 @@ class MainEngine(object):
     def getAllAppDetails(self):
         """查询引擎中所有上层应用的信息"""
         return self.appDetailList
-    
+    #----------------------------------------------------------------------
+    def getAllStrategyDetails(self):
+        """查询引擎中所有上层应用的信息"""
+        return self.strategyDetailList
 
 ########################################################################
 class DataEngine(object):

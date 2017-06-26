@@ -1,16 +1,11 @@
 {
-    "working": false,
+    "working": true,
 
     "tick":
     [
-        ["m1609", "XSPEED"],
-        ["IF1606", "SGIT"],
-        ["IH1606", "SGIT"],
-        ["IH1606", "SGIT"],
-        ["IC1606", "SGIT"],
-        ["IC1606", "SGIT"],
-        ["600036", "LTS", "SZSE"],
-        ["EUR.USD", "IB", "IDEALPRO", "USD", "外汇"]
+        ["IC1707", "CTP"],
+        ["IF1707", "CTP"],
+        ["IH1707", "CTP"]
     ],
 
     "bar":

@@ -28,6 +28,8 @@ class MainWindow(QtWidgets.QMainWindow):
         
         # 获取主引擎中的上层应用信息
         self.appDetailList = self.mainEngine.getAllAppDetails()
+        # 获取主引擎中的上层应用信息
+        self.strategyDetailList = self.mainEngine.getAllStrategyDetails()
         
         self.initUi()
         self.loadWindowSettings('custom')
@@ -107,11 +109,20 @@ class MainWindow(QtWidgets.QMainWindow):
         
         # 功能应用
         appMenu = menubar.addMenu(vtText.APPLICATION)
-        
+
+
         for appDetail in self.appDetailList:
             function = self.createOpenAppFunction(appDetail)
             action = self.createAction(appDetail['appDisplayName'], function, loadIconPath(appDetail['appIco']))
             appMenu.addAction(action)
+
+        #策略
+        strategyMenu = menubar.addMenu(vtText.STRATEGY)
+
+        for strategyDetail in self.strategyDetailList:
+            function = self.createOpenStrategyFunction(strategyDetail)
+            action = self.createAction(strategyDetail['appDisplayName'], function, loadIconPath(strategyDetail['appIco']))
+            strategyMenu.addAction(action)
         
         # 帮助
         helpMenu = menubar.addMenu(vtText.HELP)
@@ -194,7 +205,38 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.widgetDict[appName].show()
                 
         return openAppFunction
-        
+
+
+        # ----------------------------------------------------------------------
+
+    def createOpenAppFunction(self, appDetail):
+        """创建打开应用UI的函数"""
+
+        def openAppFunction():
+            appName = appDetail['appName']
+            try:
+                self.widgetDict[appName].show()
+            except KeyError:
+                appEngine = self.mainEngine.appDict[appName]
+                self.widgetDict[appName] = appDetail['appWidget'](appEngine, self.eventEngine)
+                self.widgetDict[appName].show()
+
+        return openAppFunction
+
+    # ----------------------------------------------------------------------
+    def createOpenStrategyFunction(self, appDetail):
+        """创建打开应用UI的函数"""
+
+        def openStrategyFunction():
+            appName = appDetail['appName']
+            try:
+                self.widgetDict[appName].show()
+            except KeyError:
+                appEngine = self.mainEngine.strategyDict[appName]
+                self.widgetDict[appName] = appDetail['appWidget'](appEngine, self.eventEngine)
+                self.widgetDict[appName].show()
+
+        return openStrategyFunction
     #----------------------------------------------------------------------
     def test(self):
         """测试按钮用的函数"""
