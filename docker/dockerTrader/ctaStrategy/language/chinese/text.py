@@ -16,3 +16,9 @@ SAVE_POSITION_DATA = u'保存持仓'
 STRATEGY_LOADED = u'策略加载成功'
 
 SAVE_POSITION_QUESTION = u'是否要保存策略持仓数据到数据库？'
+
+CTA_STRATEGYNAME = u'策略名称'
+CTA_STRATEGYTYPE = u'策略类型'
+CTA_COMMENT = u'策略说明'
+CTA_AUTHOR = u'策略作者'
+CTA_OPER = u'操作'

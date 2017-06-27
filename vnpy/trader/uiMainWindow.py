@@ -207,21 +207,6 @@ class MainWindow(QtWidgets.QMainWindow):
         return openAppFunction
 
 
-        # ----------------------------------------------------------------------
-
-    def createOpenAppFunction(self, appDetail):
-        """创建打开应用UI的函数"""
-
-        def openAppFunction():
-            appName = appDetail['appName']
-            try:
-                self.widgetDict[appName].show()
-            except KeyError:
-                appEngine = self.mainEngine.appDict[appName]
-                self.widgetDict[appName] = appDetail['appWidget'](appEngine, self.eventEngine)
-                self.widgetDict[appName].show()
-
-        return openAppFunction
 
     # ----------------------------------------------------------------------
     def createOpenStrategyFunction(self, appDetail):
@@ -232,7 +217,7 @@ class MainWindow(QtWidgets.QMainWindow):
             try:
                 self.widgetDict[appName].show()
             except KeyError:
-                appEngine = self.mainEngine.strategyDict[appName]
+                appEngine = self.mainEngine.strategyModulDict[appName]
                 self.widgetDict[appName] = appDetail['appWidget'](appEngine, self.eventEngine)
                 self.widgetDict[appName].show()
 

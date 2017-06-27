@@ -211,7 +211,8 @@ class DrEngine(object):
         while self.active:
             try:
                 dbName, collectionName, d = self.queue.get(block=True, timeout=1)
-                self.mainEngine.dbInsert(dbName, collectionName, d)
+
+                #self.mainEngine.dbInsert(dbName, collectionName, d)
             except Empty:
                 pass
             

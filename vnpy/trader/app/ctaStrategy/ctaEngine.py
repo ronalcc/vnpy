@@ -33,6 +33,7 @@ from vnpy.trader.vtFunction import todayDate
 
 from vnpy.trader.app.ctaStrategy.ctaBase import *
 from vnpy.trader.app.ctaStrategy.strategy import STRATEGY_CLASS
+from vnpy.trader.app.ctaStrategy.ctaTemplate import *
 
 
 
@@ -371,51 +372,53 @@ class CtaEngine(object):
         self.eventEngine.put(event)   
     
     #----------------------------------------------------------------------
-    def loadStrategy(self, setting):
-        """载入策略"""
-        try:
-            name = setting['name']
-            className = setting['className']
-        except Exception, e:
+    def loadStrategy(self, l):
+       for strategy in l:
+          try:
+            name = strategy['strategyName']
+            className = strategy['strategyName']
+
+          except Exception, e:
             self.writeCtaLog(u'载入策略出错：%s' %e)
             return
         
         # 获取策略类
-        strategyClass = STRATEGY_CLASS.get(className, None)
-        if not strategyClass:
+          strategyClass = STRATEGY_CLASS.get(className, None)
+          if not strategyClass:
             self.writeCtaLog(u'找不到策略类：%s' %className)
             return
         
-        # 防止策略重名
-        if name in self.strategyDict:
+          # 防止策略重名
+          if name in self.strategyDict:
             self.writeCtaLog(u'策略实例重名：%s' %name)
-        else:
+          else:
             # 创建策略实例
-            strategy = strategyClass(self, setting)  
+            strategy = strategyClass(self, strategy)
             self.strategyDict[name] = strategy
-            
-            # 保存Tick映射关系
-            if strategy.vtSymbol in self.tickStrategyDict:
-                l = self.tickStrategyDict[strategy.vtSymbol]
-            else:
-                l = []
-                self.tickStrategyDict[strategy.vtSymbol] = l
-            l.append(strategy)
-            
-            # 订阅合约
-            contract = self.mainEngine.getContract(strategy.vtSymbol)
-            if contract:
-                req = VtSubscribeReq()
-                req.symbol = contract.symbol
-                req.exchange = contract.exchange
-                
-                # 对于IB接口订阅行情时所需的货币和产品类型，从策略属性中获取
-                req.currency = strategy.currency
-                req.productClass = strategy.productClass
-                
-                self.mainEngine.subscribe(req, contract.gatewayName)
-            else:
-                self.writeCtaLog(u'%s的交易合约%s无法找到' %(name, strategy.vtSymbol))
+
+
+            # # 保存Tick映射关系
+            # if strategy.vtSymbol in self.tickStrategyDict:
+            #     l = self.tickStrategyDict[strategy.vtSymbol]
+            # else:
+            #     l = []
+            #     self.tickStrategyDict[strategy.vtSymbol] = l
+            # l.append(strategy)
+            #
+            # # 订阅合约
+            # contract = self.mainEngine.getContract(strategy.vtSymbol)
+            # if contract:
+            #     req = VtSubscribeReq()
+            #     req.symbol = contract.symbol
+            #     req.exchange = contract.exchange
+            #
+            #     # 对于IB接口订阅行情时所需的货币和产品类型，从策略属性中获取
+            #     req.currency = strategy.currency
+            #     req.productClass = strategy.productClass
+            #
+            #     self.mainEngine.subscribe(req, contract.gatewayName)
+            # else:
+            #     self.writeCtaLog(u'%s的交易合约%s无法找到' %(name, strategy.vtSymbol))
 
     #----------------------------------------------------------------------
     def initStrategy(self, name):
@@ -481,8 +484,8 @@ class CtaEngine(object):
             f.write(jsonL)
     
     #----------------------------------------------------------------------
+    """
     def loadSetting(self):
-        """读取策略配置"""
         with open(self.settingFileName) as f:
             l = json.load(f)
             
@@ -490,7 +493,14 @@ class CtaEngine(object):
                 self.loadStrategy(setting)
                 
         self.loadPosition()
-    
+    """
+    # ------------------数据库读取策略----------------------------------------------------
+    def querySetting(self):
+       findDict = {"strategyType":"CTA"}
+       l = self.mainEngine.dbQuery('strategy','strategyClass',findDict)
+
+       return l
+
     #----------------------------------------------------------------------
     def getStrategyVar(self, name):
         """获取策略当前的变量字典"""
@@ -506,7 +516,7 @@ class CtaEngine(object):
             self.writeCtaLog(u'策略实例不存在：' + name)    
             return None
     
-    #----------------------------------------------------------------------
+    #--------------------------------------deprecated--------------------------------
     def getStrategyParam(self, name):
         """获取策略的参数字典"""
         if name in self.strategyDict:
@@ -520,7 +530,8 @@ class CtaEngine(object):
         else:
             self.writeCtaLog(u'策略实例不存在：' + name)    
             return None   
-        
+
+
     #----------------------------------------------------------------------
     def putStrategyEvent(self, name):
         """触发策略状态变化事件（通常用于通知GUI更新）"""

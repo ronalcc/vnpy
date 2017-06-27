@@ -19,7 +19,7 @@ class CtaValueMonitor(QtGui.QTableWidget):
         """Constructor"""
         super(CtaValueMonitor, self).__init__(parent)
         
-        self.cellRowList = []
+        self.keyCellDict = {}
         self.data = None
         self.inited = False
         
@@ -28,40 +28,30 @@ class CtaValueMonitor(QtGui.QTableWidget):
     #----------------------------------------------------------------------
     def initUi(self):
         """初始化界面"""
-        #self.setRowCount(1)
+        self.setRowCount(1)
         self.verticalHeader().setVisible(False)
         self.setEditTriggers(self.NoEditTriggers)
         
         self.setMaximumHeight(self.sizeHint().height())
         
     #----------------------------------------------------------------------
-    def updateData(self, list):
+    def updateData(self, data):
         """更新数据"""
         if not self.inited:
-            self.setColumnCount(5)
-            self.setHorizontalHeaderLabels([CTA_STRATEGYNAME,CTA_STRATEGYTYPE,CTA_COMMENT,CTA_AUTHOR,CTA_OPER])
-
-            row = 0
+            self.setColumnCount(len(data))
+            self.setHorizontalHeaderLabels(data.keys())
+            
             col = 0
-            while(row<len(list)):
-               data = list[row]
-               cellCol = {}
-               for k, v in data.items():
-                 cell = QtGui.QTableWidgetItem(unicode(v))
-                 cellCol[k] = cell
-                 self.cellRowList.append(cellCol)
-                 self.setItem(row, col, cell)
-                 col += 1
-               row +=1
+            for k, v in data.items():
+                cell = QtGui.QTableWidgetItem(unicode(v))
+                self.keyCellDict[k] = cell
+                self.setItem(0, col, cell)
+                col += 1
+            
             self.inited = True
         else:
-            row = 0
-            while(row<len(list)):
-              data = list[row]
-              cellCol = {}
-              for k, v in data.items():
-                cellCol = self.cellRowList[row]
-                cell = cellCol[k]
+            for k, v in data.items():
+                cell = self.keyCellDict[k]
                 cell.setText(unicode(v))
 
 
@@ -88,15 +78,26 @@ class CtaStrategyManager(QtGui.QGroupBox):
         """初始化界面"""
         self.setTitle(self.name)
         
-        self.strategyTable = CtaValueMonitor(self)
-
-        '''
+        self.paramMonitor = CtaValueMonitor(self)
+        self.varMonitor = CtaValueMonitor(self)
+        
+        height = 65
+        self.paramMonitor.setFixedHeight(height)
+        self.varMonitor.setFixedHeight(height)
+        
+        buttonInit = QtGui.QPushButton(text.INIT)
+        buttonStart = QtGui.QPushButton(text.START)
+        buttonStop = QtGui.QPushButton(text.STOP)
+        buttonInit.clicked.connect(self.init)
+        buttonStart.clicked.connect(self.start)
+        buttonStop.clicked.connect(self.stop)
+        
         hbox1 = QtGui.QHBoxLayout()     
         hbox1.addWidget(buttonInit)
         hbox1.addWidget(buttonStart)
         hbox1.addWidget(buttonStop)
         hbox1.addStretch()
-     
+        
         hbox2 = QtGui.QHBoxLayout()
         hbox2.addWidget(self.paramMonitor)
         
@@ -109,12 +110,17 @@ class CtaStrategyManager(QtGui.QGroupBox):
         vbox.addLayout(hbox3)
 
         self.setLayout(vbox)
-         '''
+        
     #----------------------------------------------------------------------
     def updateMonitor(self, event=None):
-        """显示最新策略列表"""
-        self.strategyTable.updateData(self.ctaEngine.querySetting())
-
+        """显示策略最新状态"""
+        paramDict = self.ctaEngine.getStrategyParam(self.name)
+        if paramDict:
+            self.paramMonitor.updateData(paramDict)
+            
+        varDict = self.ctaEngine.getStrategyVar(self.name)
+        if varDict:
+            self.varMonitor.updateData(varDict)        
             
     #----------------------------------------------------------------------
     def registerEvent(self):
@@ -150,11 +156,12 @@ class CtaEngineManager(QtGui.QWidget):
         
         self.ctaEngine = ctaEngine
         self.eventEngine = eventEngine
+        
         self.strategyLoaded = False
         
         self.initUi()
         self.registerEvent()
-        self.load
+        
         # 记录日志
         self.ctaEngine.writeCtaLog(text.CTA_ENGINE_STARTED)        
         
@@ -206,9 +213,9 @@ class CtaEngineManager(QtGui.QWidget):
         w = QtGui.QWidget()
         vbox = QtGui.QVBoxLayout()
         
-        strategyManager = CtaStrategyManager(self.ctaEngine, self.eventEngine, '策略列表')
-
-        vbox.addWidget(strategyManager)
+        for name in self.ctaEngine.strategyDict.keys():
+            strategyManager = CtaStrategyManager(self.ctaEngine, self.eventEngine, name)
+            vbox.addWidget(strategyManager)
         
         vbox.addStretch()
         
@@ -237,7 +244,7 @@ class CtaEngineManager(QtGui.QWidget):
     def load(self):
         """加载策略"""
         if not self.strategyLoaded:
-            self.ctaEngine.loadStrategy(self.ctaEngine.querySetting())
+            self.ctaEngine.loadSetting()
             self.initStrategyManager()
             self.strategyLoaded = True
             self.ctaEngine.writeCtaLog(text.STRATEGY_LOADED)

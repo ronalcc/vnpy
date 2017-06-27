@@ -14,29 +14,24 @@ class CtaTemplate(object):
     
     # 策略类的名称和作者
     className = 'CtaTemplate'
-    author = EMPTY_UNICODE
+    author = 'CHENCHEN'
     
     # MongoDB数据库的名称，K线数据库默认为1分钟
     tickDbName = TICK_DB_NAME
     barDbName = MINUTE_DB_NAME
     
     # 策略的基本参数
-    name = EMPTY_UNICODE           # 策略实例名称
-    vtSymbol = EMPTY_STRING        # 交易的合约vt系统代码    
-    productClass = EMPTY_STRING    # 产品类型（只有IB接口需要）
-    currency = EMPTY_STRING        # 货币（只有IB接口需要）
+    #name = EMPTY_UNICODE           # 策略实例名称
+    #vtSymbol = EMPTY_STRING        # 交易的合约vt系统代码
+    #productClass = EMPTY_STRING    # 产品类型（只有IB接口需要）
+    #currency = EMPTY_STRING        # 货币（只有IB接口需要）
     
     # 策略的基本变量，由引擎管理
     inited = False                 # 是否进行了初始化
     trading = False                # 是否启动交易，由引擎管理
     pos = 0                        # 持仓情况
-    
-    # 参数列表，保存了参数的名称
-    paramList = ['name',
-                 'className',
-                 'author',
-                 'vtSymbol']
-    
+
+
     # 变量列表，保存了变量的名称
     varList = ['inited',
                'trading',
@@ -50,9 +45,7 @@ class CtaTemplate(object):
         # 设置策略的参数
         if setting:
             d = self.__dict__
-            for key in self.paramList:
-                if key in setting:
-                    d[key] = setting[key]
+            d = setting
     
     #----------------------------------------------------------------------
     def onInit(self):

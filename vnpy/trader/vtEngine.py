@@ -45,7 +45,7 @@ class MainEngine(object):
         self.appDetailList = []
 
         ##策略模块实例
-        self.strategyDict = OrderedDict()
+        self.strategyModulDict = OrderedDict()
         self.strategyDetailList = []
         
         # 风控引擎实例（特殊独立对象）
@@ -95,7 +95,7 @@ class MainEngine(object):
         appName = appModule.appName
 
         # 创建应用实例
-        self.strategyDict[appName] = appModule.appEngine(self, self.eventEngine)
+        self.strategyModulDict[appName] = appModule.appEngine(self, self.eventEngine)
 
         # 保存应用信息
         d = {
@@ -230,12 +230,15 @@ class MainEngine(object):
             self.writeLog(text.DATA_INSERT_FAILED)
     
     #----------------------------------------------------------------------
-    def dbQuery(self, dbName, collectionName, d):
+    def dbQuery(self, dbName, collectionName, d=False):
         """从MongoDB中读取数据，d是查询要求，返回的是数据库查询的指针"""
         if self.dbClient:
             db = self.dbClient[dbName]
             collection = db[collectionName]
-            cursor = collection.find(d)
+            if d:
+              cursor = collection.find(d)
+            else:
+              cursor = collection.find()
             if cursor:
                 return list(cursor)
             else:

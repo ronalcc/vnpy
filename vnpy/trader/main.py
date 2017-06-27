@@ -33,7 +33,7 @@ def main():
     # 添加上层应用
     me.addApp(riskManager)
     me.addStrategy(ctaStrategy)
-    #me.addApp(dataRecorder)
+    me.addApp(dataRecorder)
 
     # 创建主窗口
     mw = MainWindow(me, ee)
