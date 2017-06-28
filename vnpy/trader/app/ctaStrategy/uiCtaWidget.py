@@ -35,15 +35,25 @@ class CtaValueMonitor(QtWidgets.QTableWidget):
        # self.setRowCount(1)
         self.verticalHeader().setVisible(False)
         self.setEditTriggers(self.NoEditTriggers)
-        
         self.setMaximumHeight(self.sizeHint().height())
-        
+        self.setColumnCount(5)
+        self.setHorizontalHeaderLabels(
+            [text.CTA_STRATEGYNAME, text.CTA_STRATEGYTYPE, text.CTA_COMMENT, text.CTA_AUTHOR, text.CTA_OPER])
+        self.horizontalHeader().resizeSection(0,200)
+        self.horizontalHeader().resizeSection(1,120)
+        self.horizontalHeader().resizeSection(2,600)
+        self.horizontalHeader().resizeSection(3,160)
+        self.horizontalHeader().resizeSection(4,500)
+
+        self.setColumnWidth(0,200)
+        self.setColumnWidth(1,120)
+        self.setColumnWidth(2,600)
+        self.setColumnWidth(3,160)
+        self.setColumnWidth(4,500)
     #----------------------------------------------------------------------
     def updateData(self, list):
         """更新数据"""
         if not self.inited:
-            self.setColumnCount(5)
-            self.setHorizontalHeaderLabels([text.CTA_STRATEGYNAME,text.CTA_STRATEGYTYPE,text.CTA_COMMENT,text.CTA_AUTHOR,text.CTA_OPER])
 
             row = 0
             col = 0
@@ -111,18 +121,18 @@ class CtaStrategyManager(QtWidgets.QGroupBox):
         # hbox1.addWidget(buttonStop)
         # hbox1.addStretch()
         #
-        # hbox2 = QtWidgets.QHBoxLayout()
-        # hbox2.addWidget(self.paramMonitor)
+        hbox2 = QtWidgets.QHBoxLayout()
+        hbox2.addWidget(self.strategyTable)
         #
         # hbox3 = QtWidgets.QHBoxLayout()
         # hbox3.addWidget(self.varMonitor)
         #
-        # vbox = QtWidgets.QVBoxLayout()
+        vbox = QtWidgets.QVBoxLayout()
         # vbox.addLayout(hbox1)
-        # vbox.addLayout(hbox2)
+        vbox.addLayout(hbox2)
         # vbox.addLayout(hbox3)
         #
-        # self.setLayout(vbox)
+        self.setLayout(vbox)
         
     #----------------------------------------------------------------------
     def updateMonitor(self, event=None):
@@ -168,7 +178,7 @@ class CtaEngineManager(QtWidgets.QWidget):
         
         self.initUi()
         self.registerEvent()
-        
+        self.resize(1600,1200)
         # 记录日志
         self.ctaEngine.writeCtaLog(text.CTA_ENGINE_STARTED)        
         
@@ -200,16 +210,16 @@ class CtaEngineManager(QtWidgets.QWidget):
         self.ctaLogMonitor.setMaximumHeight(200)
         
         # 设置布局
-        hbox2 = QtWidgets.QHBoxLayout()
-        hbox2.addWidget(loadButton)
-        hbox2.addWidget(initAllButton)
-        hbox2.addWidget(startAllButton)
-        hbox2.addWidget(stopAllButton)
-        hbox2.addWidget(savePositionButton)
-        hbox2.addStretch()
-        
+        # hbox2 = QtWidgets.QHBoxLayout()
+        # hbox2.addWidget(loadButton)
+        # hbox2.addWidget(initAllButton)
+        # hbox2.addWidget(startAllButton)
+        # hbox2.addWidget(stopAllButton)
+        # hbox2.addWidget(savePositionButton)
+        # hbox2.addStretch()
+        #
         vbox = QtWidgets.QVBoxLayout()
-        vbox.addLayout(hbox2)
+        # vbox.addLayout(hbox2)
         vbox.addWidget(self.scrollArea)
         vbox.addWidget(self.ctaLogMonitor)
         self.setLayout(vbox)
@@ -220,7 +230,7 @@ class CtaEngineManager(QtWidgets.QWidget):
         w = QtWidgets.QWidget()
         vbox = QtWidgets.QVBoxLayout()
         
-        strategyManager = CtaStrategyManager(self.ctaEngine, self.eventEngine,  '策略列表')
+        strategyManager = CtaStrategyManager(self.ctaEngine, self.eventEngine, text.CTA_LIST)
         vbox.addWidget(strategyManager)
         
         vbox.addStretch()
