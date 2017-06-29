@@ -8,6 +8,8 @@ from vnpy.trader.uiBasicWidget import *
 from vnpy.event import Event
 from vnpy.trader.vtEvent import *
 from PyQt4 import QtGui
+from abc import ABCMeta,abstractmethod,abstractproperty
+
 
 from vnpy.trader.app.strategy.language import text
 
@@ -35,44 +37,12 @@ class ValueMonitor(QtWidgets.QTableWidget):
         self.verticalHeader().setVisible(False)
         self.setEditTriggers(self.NoEditTriggers)
         self.setMaximumHeight(self.sizeHint().height())
-        # self.setColumnCount(5)
-        # self.setHorizontalHeaderLabels(
-        #     [text.CTA_STRATEGYNAME, text.CTA_STRATEGYTYPE, text.CTA_COMMENT, text.CTA_AUTHOR, text.CTA_OPER])
-        # self.horizontalHeader().resizeSection(0, 200)
-        # self.horizontalHeader().resizeSection(1, 100)
-        # self.horizontalHeader().resizeSection(2, 500)
-        # self.horizontalHeader().resizeSection(3, 100)
-        # self.horizontalHeader().resizeSection(4, 300)
-        #
-        # self.setColumnWidth(0, 200)
-        # self.setColumnWidth(1, 100)
-        # self.setColumnWidth(2, 500)
-        # self.setColumnWidth(3, 100)
-        # self.setColumnWidth(4, 300)
 
     # ----------------------------------------------------------------------
+    @abstractmethod
     def updateData(self, list):
         '''更新表格数据'''
-        # self.setRowCount(len(list))
-        # if not self.inited:
-        #
-        #     row = 0
-        #     while (row < len(list)):
-        #         data = list[row]
-        #         self.setItem(row, 0, QtGui.QTableWidgetItem(unicode(data['strategyName'])))
-        #         self.setItem(row, 1, QtGui.QTableWidgetItem(unicode(data['strategyType'])))
-        #         self.setItem(row, 2, QtGui.QTableWidgetItem(unicode(data['comment'])))
-        #         self.setItem(row, 3, QtGui.QTableWidgetItem(unicode(data['author'])))
-        #         row += 1
-        #     self.inited = True
-        # else:
-        #     row = 0
-        #     while (row < len(list)):
-        #         data = list[row]
-        #         self.item(row, 0).setText(unicode(data['strategyName']))
-        #         self.item(row, 1).setText(unicode(data['strategyType']))
-        #         self.item(row, 2).setText(unicode(data['comment']))
-        #         self.item(row, 3).setText(unicode(data['author']))
+        pass
 
 
 ########################################################################
@@ -81,11 +51,11 @@ class StrategyManager(QtWidgets.QGroupBox):
     signal = QtCore.Signal(type(Event()))
 
     # ----------------------------------------------------------------------
-    def __init__(self, ctaEngine, eventEngine, name, parent=None):
+    def __init__(self, strategyEngine, eventEngine, name, parent=None):
         """Constructor"""
         super(StrategyManager, self).__init__(parent)
 
-        self.ctaEngine = ctaEngine
+        self.strategyEngine = strategyEngine
         self.eventEngine = eventEngine
         self.name = name
 
@@ -135,13 +105,13 @@ class StrategyManager(QtWidgets.QGroupBox):
     # ----------------------------------------------------------------------
     def updateMonitor(self, event=None):
         """显示最新策略列表"""
-        self.strategyTable.updateData(self.ctaEngine.querySetting())
+        self.strategyTable.updateData(self.strategyEngine.querySetting())
 
     # ----------------------------------------------------------------------
     def registerEvent(self):
         """注册事件监听"""
         self.signal.connect(self.updateMonitor)
-        self.eventEngine.register(EVENT_CTA_STRATEGY + self.name, self.signal.emit)
+        self.eventEngine.register(EVENT_STRATEGY + self.name, self.signal.emit)
 
     # # ----------------------------------------------------------------------
     # def init(self):
@@ -161,7 +131,7 @@ class StrategyManager(QtWidgets.QGroupBox):
 
 ########################################################################
 class EngineManager(QtWidgets.QWidget):
-    """CTA引擎管理组件"""
+    """策略引擎管理组件"""
     signal = QtCore.Signal(type(Event()))
 
     # ----------------------------------------------------------------------
@@ -169,16 +139,12 @@ class EngineManager(QtWidgets.QWidget):
         """Constructor"""
         super(EngineManager, self).__init__(parent)
 
-        self.ctaEngine = strategyEngine
+        self.strategyEngine = strategyEngine
         self.eventEngine = eventEngine
-
         self.strategyLoaded = False
 
         self.initUi()
         self.registerEvent()
-        #self.resize(1200, 900)
-        # 记录日志
-        self.ctaEngine.writeCtaLog(text.CTA_ENGINE_STARTED)
 
         # ----------------------------------------------------------------------
 
@@ -203,10 +169,10 @@ class EngineManager(QtWidgets.QWidget):
         self.scrollArea = QtWidgets.QScrollArea()
         self.scrollArea.setWidgetResizable(True)
 
-        # CTA组件的日志监控
-        self.ctaLogMonitor = QtWidgets.QTextEdit()
-        self.ctaLogMonitor.setReadOnly(True)
-        self.ctaLogMonitor.setMaximumHeight(200)
+        # 组件的日志监控
+        self.logMonitor = QtWidgets.QTextEdit()
+        self.logMonitor.setReadOnly(True)
+        self.logMonitor.setMaximumHeight(200)
 
         # 设置布局
         # hbox2 = QtWidgets.QHBoxLayout()
@@ -220,9 +186,16 @@ class EngineManager(QtWidgets.QWidget):
         vbox = QtWidgets.QVBoxLayout()
         # vbox.addLayout(hbox2)
         vbox.addWidget(self.scrollArea)
-        vbox.addWidget(self.ctaLogMonitor)
+        vbox.addWidget(self.ogMonitor)
         self.setLayout(vbox)
         self.load()
+
+    #-----------------------------------------------------------------------
+    def load(self):
+        self.strategyEngine.loadStrategy(self.strategyEngine.querySetting())
+        self.initStrategyManager()
+        self.strategyLoaded = True
+        self.strategyEngine.writeLog(text.STRATEGY_LOADED)
 
     # ----------------------------------------------------------------------
     def initStrategyManager(self):
@@ -230,7 +203,7 @@ class EngineManager(QtWidgets.QWidget):
         w = QtWidgets.QWidget()
         vbox = QtWidgets.QVBoxLayout()
 
-        strategyManager = StrategyManager(self.ctaEngine, self.eventEngine, text.CTA_LIST)
+        strategyManager = StrategyManager(self.strategyEngine, self.eventEngine, text.STRATEGY_LIST)
         vbox.addWidget(strategyManager)
 
         vbox.addStretch()
@@ -240,43 +213,37 @@ class EngineManager(QtWidgets.QWidget):
 
         # ----------------------------------------------------------------------
 
-    def initAll(self):
-        """全部初始化"""
-        for name in self.ctaEngine.strategyDict.keys():
-            self.ctaEngine.initStrategy(name)
+    # def initAll(self):
+    #     """全部初始化"""
+    #     for name in self.ctaEngine.strategyDict.keys():
+    #         self.ctaEngine.initStrategy(name)
+    #
+    #         # ----------------------------------------------------------------------
+    #
+    # def startAll(self):
+    #     """全部启动"""
+    #     for name in self.ctaEngine.strategyDict.keys():
+    #         self.ctaEngine.startStrategy(name)
+    #
+    # # ----------------------------------------------------------------------
+    # def stopAll(self):
+    #     """全部停止"""
+    #     for name in self.ctaEngine.strategyDict.keys():
+    #         self.ctaEngine.stopStrategy(name)
 
-            # ----------------------------------------------------------------------
 
-    def startAll(self):
-        """全部启动"""
-        for name in self.ctaEngine.strategyDict.keys():
-            self.ctaEngine.startStrategy(name)
 
-    # ----------------------------------------------------------------------
-    def stopAll(self):
-        """全部停止"""
-        for name in self.ctaEngine.strategyDict.keys():
-            self.ctaEngine.stopStrategy(name)
-
-    # ----------------------------------------------------------------------
-    def load(self):
-        self.ctaEngine.loadStrategy(self.ctaEngine.querySetting())
-        self.initStrategyManager()
-        self.strategyLoaded = True
-        self.ctaEngine.writeCtaLog(text.STRATEGY_LOADED)
-
-    # ----------------------------------------------------------------------
-    def updateCtaLog(self, event):
-        """更新CTA相关日志"""
+    def updateLog(self, event):
+        """更新相关日志"""
         log = event.dict_['data']
         content = '\t'.join([log.logTime, log.logContent])
-        self.ctaLogMonitor.append(content)
+        self.logMonitor.append(content)
 
     # ----------------------------------------------------------------------
     def registerEvent(self):
         """注册事件监听"""
-        self.signal.connect(self.updateCtaLog)
-        self.eventEngine.register(EVENT_CTA_LOG, self.signal.emit)
+        self.signal.connect(self.updateaLog)
+        self.eventEngine.register(EVENT_LOG, self.signal.emit)
 
     # ----------------------------------------------------------------------
     def closeEvent(self, event):
@@ -286,7 +253,7 @@ class EngineManager(QtWidgets.QWidget):
                                                QtWidgets.QMessageBox.No, QtWidgets.QMessageBox.No)
 
         if reply == QtWidgets.QMessageBox.Yes:
-            self.ctaEngine.savePosition()
+            self.engine.savePosition()
 
         event.accept()
 
