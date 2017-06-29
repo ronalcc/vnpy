@@ -40,43 +40,40 @@ class CtaValueMonitor(QtWidgets.QTableWidget):
         self.setHorizontalHeaderLabels(
             [text.CTA_STRATEGYNAME, text.CTA_STRATEGYTYPE, text.CTA_COMMENT, text.CTA_AUTHOR, text.CTA_OPER])
         self.horizontalHeader().resizeSection(0,200)
-        self.horizontalHeader().resizeSection(1,120)
-        self.horizontalHeader().resizeSection(2,600)
-        self.horizontalHeader().resizeSection(3,160)
-        self.horizontalHeader().resizeSection(4,500)
+        self.horizontalHeader().resizeSection(1,100)
+        self.horizontalHeader().resizeSection(2,500)
+        self.horizontalHeader().resizeSection(3,100)
+        self.horizontalHeader().resizeSection(4,300)
 
         self.setColumnWidth(0,200)
-        self.setColumnWidth(1,120)
-        self.setColumnWidth(2,600)
-        self.setColumnWidth(3,160)
-        self.setColumnWidth(4,500)
+        self.setColumnWidth(1,100)
+        self.setColumnWidth(2,500)
+        self.setColumnWidth(3,100)
+        self.setColumnWidth(4,300)
     #----------------------------------------------------------------------
     def updateData(self, list):
-        """更新数据"""
+        self.setRowCount(len(list))
         if not self.inited:
 
             row = 0
-            col = 0
             while(row<len(list)):
                data = list[row]
-               cellCol = {}
-               for k, v in data.items():
-                 cell = QtGui.QTableWidgetItem(unicode(v))
-                 cellCol[k] = cell
-                 self.cellRowList.append(cellCol)
-                 self.setItem(row, col, cell)
-                 col += 1
+               self.setItem(row,0,QtGui.QTableWidgetItem(unicode(data['strategyName'])))
+               self.setItem(row, 1, QtGui.QTableWidgetItem(unicode(data['strategyType'])))
+               self.setItem(row, 2, QtGui.QTableWidgetItem(unicode(data['comment'])))
+               self.setItem(row, 3, QtGui.QTableWidgetItem(unicode(data['author'])))
                row +=1
             self.inited = True
         else:
             row = 0
             while(row<len(list)):
               data = list[row]
-              cellCol = {}
-              for k, v in data.items():
-                cellCol = self.cellRowList[row]
-                cell = cellCol[k]
-                cell.setText(unicode(v))
+              self.item(row,0).setText(unicode(data['strategyName']))
+              self.item(row,1).setText(unicode(data['strategyType']))
+              self.item(row, 2).setText(unicode(data['comment']))
+              self.item(row, 3).setText(unicode(data['author']))
+
+
 ########################################################################
 class CtaStrategyManager(QtWidgets.QGroupBox):
     """策略管理组件"""
@@ -178,7 +175,7 @@ class CtaEngineManager(QtWidgets.QWidget):
         
         self.initUi()
         self.registerEvent()
-        self.resize(1600,1200)
+        self.resize(1200,900)
         # 记录日志
         self.ctaEngine.writeCtaLog(text.CTA_ENGINE_STARTED)        
         
