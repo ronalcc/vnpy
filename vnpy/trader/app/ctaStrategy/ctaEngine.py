@@ -52,65 +52,65 @@ class CtaEngine(StrategyEngine):
     def sendOrder(self, vtSymbol, orderType, price, volume, strategy):
         """发单"""
         contract = self.mainEngine.getContract(vtSymbol)
-        
+
         req = VtOrderReq()
         req.symbol = contract.symbol
         req.exchange = contract.exchange
         req.price = self.roundToPriceTick(contract.priceTick, price)
         req.volume = volume
-        
+
         req.productClass = strategy.productClass
-        req.currency = strategy.currency        
+        req.currency = strategy.currency
         
         # 设计为CTA引擎发出的委托只允许使用限价单
-        req.priceType = PRICETYPE_LIMITPRICE    
+        req.priceType = constant.PRICETYPE_LIMITPRICE
         
         # CTA委托类型映射
         if orderType == CTAORDER_BUY:
-            req.direction = DIRECTION_LONG
-            req.offset = OFFSET_OPEN
+            req.direction = constant.DIRECTION_LONG
+            req.offset = constant.OFFSET_OPEN
             
         elif orderType == CTAORDER_SELL:
-            req.direction = DIRECTION_SHORT
+            req.direction = constant.DIRECTION_SHORT
             
             # 只有上期所才要考虑平今平昨
-            if contract.exchange != EXCHANGE_SHFE:
-                req.offset = OFFSET_CLOSE
+            if contract.exchange != constant.EXCHANGE_SHFE:
+                req.offset = constant.OFFSET_CLOSE
             else:
                 # 获取持仓缓存数据
                 posBuffer = self.posBufferDict.get(vtSymbol, None)
                 # 如果获取持仓缓存失败，则默认平昨
                 if not posBuffer:
-                    req.offset = OFFSET_CLOSE
+                    req.offset = constant.OFFSET_CLOSE
                 # 否则如果有多头今仓，则使用平今
                 elif posBuffer.longToday:
-                    req.offset= OFFSET_CLOSETODAY
+                    req.offset= constant.OFFSET_CLOSETODAY
                 # 其他情况使用平昨
                 else:
-                    req.offset = OFFSET_CLOSE
+                    req.offset =constant OFFSET_CLOSE
                 
         elif orderType == CTAORDER_SHORT:
-            req.direction = DIRECTION_SHORT
-            req.offset = OFFSET_OPEN
+            req.direction = constant.DIRECTION_SHORT
+            req.offset = constant.OFFSET_OPEN
             
         elif orderType == CTAORDER_COVER:
-            req.direction = DIRECTION_LONG
+            req.direction = constant.DIRECTION_LONG
             
             # 只有上期所才要考虑平今平昨
-            if contract.exchange != EXCHANGE_SHFE:
-                req.offset = OFFSET_CLOSE
+            if contract.exchange != constant.EXCHANGE_SHFE:
+                req.offset = constant.OFFSET_CLOSE
             else:
                 # 获取持仓缓存数据
                 posBuffer = self.posBufferDict.get(vtSymbol, None)
                 # 如果获取持仓缓存失败，则默认平昨
                 if not posBuffer:
-                    req.offset = OFFSET_CLOSE
+                    req.offset = constant.OFFSET_CLOSE
                 # 否则如果有空头今仓，则使用平今
                 elif posBuffer.shortToday:
-                    req.offset= OFFSET_CLOSETODAY
+                    req.offset= constant.OFFSET_CLOSETODAY
                 # 其他情况使用平昨
                 else:
-                    req.offset = OFFSET_CLOSE
+                    req.offset = constant.OFFSET_CLOSE
         
         vtOrderID = self.mainEngine.sendOrder(req, contract.gatewayName)    # 发单
         self.orderStrategyDict[vtOrderID] = strategy        # 保存vtOrderID和策略的映射关系
@@ -129,7 +129,7 @@ class CtaEngine(StrategyEngine):
         # 如果查询成功
         if order:
             # 检查是否报单还有效，只有有效时才发出撤单指令
-            orderFinished = (order.status==STATUS_ALLTRADED or order.status==STATUS_CANCELLED)
+            orderFinished = (order.status==constant.STATUS_ALLTRADED or order.status==constant.STATUS_CANCELLED)
             if not orderFinished:
                 req = VtCancelOrderReq()
                 req.symbol = order.symbol
@@ -155,17 +155,17 @@ class CtaEngine(StrategyEngine):
         so.status = STOPORDER_WAITING
         
         if orderType == CTAORDER_BUY:
-            so.direction = DIRECTION_LONG
-            so.offset = OFFSET_OPEN
+            so.direction = constant.DIRECTION_LONG
+            so.offset = constant.OFFSET_OPEN
         elif orderType == CTAORDER_SELL:
-            so.direction = DIRECTION_SHORT
-            so.offset = OFFSET_CLOSE
+            so.direction = constant.DIRECTION_SHORT
+            so.offset = constant.OFFSET_CLOSE
         elif orderType == CTAORDER_SHORT:
-            so.direction = DIRECTION_SHORT
-            so.offset = OFFSET_OPEN
+            so.direction = constant.DIRECTION_SHORT
+            so.offset = constant.OFFSET_OPEN
         elif orderType == CTAORDER_COVER:
-            so.direction = DIRECTION_LONG
-            so.offset = OFFSET_CLOSE           
+            so.direction = constant.DIRECTION_LONG
+            so.offset = constant.OFFSET_CLOSE
         
         # 保存stopOrder对象到字典中
         self.stopOrderDict[stopOrderID] = so
@@ -192,12 +192,12 @@ class CtaEngine(StrategyEngine):
             # 遍历等待中的停止单，检查是否会被触发
             for so in self.workingStopOrderDict.values():
                 if so.vtSymbol == vtSymbol:
-                    longTriggered = so.direction==DIRECTION_LONG and tick.lastPrice>=so.price        # 多头停止单被触发
-                    shortTriggered = so.direction==DIRECTION_SHORT and tick.lastPrice<=so.price     # 空头停止单被触发
+                    longTriggered = so.direction==constant.DIRECTION_LONG and tick.lastPrice>=so.price        # 多头停止单被触发
+                    shortTriggered = so.direction==constant.DIRECTION_SHORT and tick.lastPrice<=so.price     # 空头停止单被触发
                     
                     if longTriggered or shortTriggered:
                         # 买入和卖出分别以涨停跌停价发单（模拟市价单）
-                        if so.direction==DIRECTION_LONG:
+                        if so.direction==constant.DIRECTION_LONG:
                             price = tick.upperLimit
                         else:
                             price = tick.lowerLimit
@@ -248,7 +248,7 @@ class CtaEngine(StrategyEngine):
             strategy = self.orderStrategyDict[trade.vtOrderID]
             
             # 计算策略持仓
-            if trade.direction == DIRECTION_LONG:
+            if trade.direction == constant.DIRECTION_LONG:
                 strategy.pos += trade.volume
             else:
                 strategy.pos -= trade.volume

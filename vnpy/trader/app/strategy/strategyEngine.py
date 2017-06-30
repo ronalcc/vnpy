@@ -283,7 +283,7 @@ class StrategyEngine():
             strategy = self.orderStrategyDict[trade.vtOrderID]
 
             # 计算策略持仓
-            if trade.direction == DIRECTION_LONG:
+            if trade.direction == constant.DIRECTION_LONG:
                 strategy.pos += trade.volume
             else:
                 strategy.pos -= trade.volume
