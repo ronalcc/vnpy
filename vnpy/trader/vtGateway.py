@@ -23,15 +23,20 @@ class VtGateway(object):
     def onTick(self, tick):
         """市场行情推送"""
         # 通用事件
-        event1 = Event(type_=EVENT_TICK)
-        event1.dict_['data'] = tick
-        self.eventEngine.put(event1)
-        
-        # 特定合约代码的事件
-        event2 = Event(type_=EVENT_TICK+tick.vtSymbol)
-        event2.dict_['data'] = tick
-        self.eventEngine.put(event2)
-    
+        # event1 = Event(type_=EVENT_TICK)
+        # event1.dict_['data'] = tick
+        # self.eventEngine.put(event1)
+        #
+        # # 特定合约代码的事件
+        # event2 = Event(type_=EVENT_TICK+tick.vtSymbol)
+        # event2.dict_['data'] = tick
+        # self.eventEngine.put(event2)
+
+        #重写行情推送及分发方式
+        event = Event(type_=tick.vtSymbol)
+        event.dict_['data']  = tick
+        self.eventEngine.
+
     #----------------------------------------------------------------------
     def onTrade(self, trade):
         """成交信息推送"""

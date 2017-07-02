@@ -82,77 +82,87 @@ class StrategyEngine():
         # 注册事件监听
         self.registerEvent()
 
-    # ----------------------------------------------------------------------
-    def sendOrder(self, vtSymbol, orderType, price, volume, strategy):
-        """发单"""
-        contract = self.mainEngine.getContract(vtSymbol)
+    # ------------------------------------------------------------------------
+       def sendOrder(self,req,strategyInstance):
+           contract  = self.mainEngine.getContract(req.symbol)
+           vtOrderID = self.mainEngine.sendOrder(req, contract.gatewayName)  # 发单
+           self.orderStrategyInstanceDict[vtOrderID] = strategyInstance  # 保存vtOrderID和策略的映射关系
 
-        req = VtOrderReq()
-        req.symbol = contract.symbol
-        req.exchange = contract.exchange
-        req.price = self.roundToPriceTick(contract.priceTick, price)
-        req.volume = volume
+           self.writeCtaLog(u'策略%s发送委托，%s，%s，%s@%s'
+                             % (strategyInstance.strategyName, req.symbol, req.direction, req.volume, req.price))
 
-        req.productClass = strategy.productClass
-        req.currency = strategy.currency
+           return vtOrderID
 
-        # 设计为CTA引擎发出的委托只允许使用限价单
-        req.priceType = PRICETYPE_LIMITPRICE
+     # def sendOrder(self, vtSymbol, orderType, price, volume, strategy):
 
-        # CTA委托类型映射
-        if orderType == CTAORDER_BUY:
-            req.direction = DIRECTION_LONG
-            req.offset = OFFSET_OPEN
-
-        elif orderType == CTAORDER_SELL:
-            req.direction = DIRECTION_SHORT
-
-            # 只有上期所才要考虑平今平昨
-            if contract.exchange != EXCHANGE_SHFE:
-                req.offset = OFFSET_CLOSE
-            else:
-                # 获取持仓缓存数据
-                posBuffer = self.posBufferDict.get(vtSymbol, None)
-                # 如果获取持仓缓存失败，则默认平昨
-                if not posBuffer:
-                    req.offset = OFFSET_CLOSE
-                # 否则如果有多头今仓，则使用平今
-                elif posBuffer.longToday:
-                    req.offset = OFFSET_CLOSETODAY
-                # 其他情况使用平昨
-                else:
-                    req.offset = OFFSET_CLOSE
-
-        elif orderType == CTAORDER_SHORT:
-            req.direction = DIRECTION_SHORT
-            req.offset = OFFSET_OPEN
-
-        elif orderType == CTAORDER_COVER:
-            req.direction = DIRECTION_LONG
-
-            # 只有上期所才要考虑平今平昨
-            if contract.exchange != EXCHANGE_SHFE:
-                req.offset = OFFSET_CLOSE
-            else:
-                # 获取持仓缓存数据
-                posBuffer = self.posBufferDict.get(vtSymbol, None)
-                # 如果获取持仓缓存失败，则默认平昨
-                if not posBuffer:
-                    req.offset = OFFSET_CLOSE
-                # 否则如果有空头今仓，则使用平今
-                elif posBuffer.shortToday:
-                    req.offset = OFFSET_CLOSETODAY
-                # 其他情况使用平昨
-                else:
-                    req.offset = OFFSET_CLOSE
-
-        vtOrderID = self.mainEngine.sendOrder(req, contract.gatewayName)  # 发单
-        self.orderStrategyDict[vtOrderID] = strategy  # 保存vtOrderID和策略的映射关系
-
-        self.writeCtaLog(u'策略%s发送委托，%s，%s，%s@%s'
-                         % (strategy.name, vtSymbol, req.direction, volume, price))
-
-        return vtOrderID
+        # contract = self.mainEngine.getContract(vtSymbol)
+        #
+        # req = VtOrderReq()
+        # req.symbol = contract.symbol
+        # req.exchange = contract.exchange
+        # req.price = self.roundToPriceTick(contract.priceTick, price)
+        # req.volume = volume
+        #
+        # req.productClass = strategy.productClass
+        # req.currency = strategy.currency
+        #
+        # # 设计为CTA引擎发出的委托只允许使用限价单
+        # req.priceType = PRICETYPE_LIMITPRICE
+        #
+        # # CTA委托类型映射
+        # if orderType == CTAORDER_BUY:
+        #     req.direction = DIRECTION_LONG
+        #     req.offset = OFFSET_OPEN
+        #
+        # elif orderType == CTAORDER_SELL:
+        #     req.direction = DIRECTION_SHORT
+        #
+        #     # 只有上期所才要考虑平今平昨
+        #     if contract.exchange != EXCHANGE_SHFE:
+        #         req.offset = OFFSET_CLOSE
+        #     else:
+        #         # 获取持仓缓存数据
+        #         posBuffer = self.posBufferDict.get(vtSymbol, None)
+        #         # 如果获取持仓缓存失败，则默认平昨
+        #         if not posBuffer:
+        #             req.offset = OFFSET_CLOSE
+        #         # 否则如果有多头今仓，则使用平今
+        #         elif posBuffer.longToday:
+        #             req.offset = OFFSET_CLOSETODAY
+        #         # 其他情况使用平昨
+        #         else:
+        #             req.offset = OFFSET_CLOSE
+        #
+        # elif orderType == CTAORDER_SHORT:
+        #     req.direction = DIRECTION_SHORT
+        #     req.offset = OFFSET_OPEN
+        #
+        # elif orderType == CTAORDER_COVER:
+        #     req.direction = DIRECTION_LONG
+        #
+        #     # 只有上期所才要考虑平今平昨
+        #     if contract.exchange != EXCHANGE_SHFE:
+        #         req.offset = OFFSET_CLOSE
+        #     else:
+        #         # 获取持仓缓存数据
+        #         posBuffer = self.posBufferDict.get(vtSymbol, None)
+        #         # 如果获取持仓缓存失败，则默认平昨
+        #         if not posBuffer:
+        #             req.offset = OFFSET_CLOSE
+        #         # 否则如果有空头今仓，则使用平今
+        #         elif posBuffer.shortToday:
+        #             req.offset = OFFSET_CLOSETODAY
+        #         # 其他情况使用平昨
+        #         else:
+        #             req.offset = OFFSET_CLOSE
+        #
+        # vtOrderID = self.mainEngine.sendOrder(req, contract.gatewayName)  # 发单
+        # self.orderStrategyDict[vtOrderID] = strategy  # 保存vtOrderID和策略的映射关系
+        #
+        # self.writeCtaLog(u'策略%s发送委托，%s，%s，%s@%s'
+        #                  % (strategy.name, vtSymbol, req.direction, volume, price))
+        #
+        # return vtOrderID
 
     # ----------------------------------------------------------------------
     def cancelOrder(self, vtOrderID):
@@ -162,157 +172,131 @@ class StrategyEngine():
 
         # 如果查询成功
         if order:
-            # 检查是否报单还有效，只有有效时才发出撤单指令
-            orderFinished = (order.status == STATUS_ALLTRADED or order.status == STATUS_CANCELLED)
-            if not orderFinished:
-                req = VtCancelOrderReq()
-                req.symbol = order.symbol
-                req.exchange = order.exchange
-                req.frontID = order.frontID
-                req.sessionID = order.sessionID
-                req.orderID = order.orderID
-                self.mainEngine.cancelOrder(req, order.gatewayName)
+        # 检查是否报单还有效，只有有效时才发出撤单指令
+             orderFinished = (order.status == constant.STATUS_ALLTRADED or order.status == constant.STATUS_CANCELLED)
+             if not orderFinished:
+                 req = VtCancelOrderReq()
+                 req.symbol = order.symbol
+                 req.exchange = order.exchange
+                 req.frontID = order.frontID
+                 req.sessionID = order.sessionID
+                 req.orderID = order.orderID
+                 self.mainEngine.cancelOrder(req, order.gatewayName)
 
                 # ----------------------------------------------------------------------
 
-    def sendStopOrder(self, vtSymbol, orderType, price, volume, strategy):
+    def sendStopOrder(self, startegyEngine,stopOrder):
         """发停止单（本地实现）"""
-        self.stopOrderCount += 1
-        stopOrderID = STOPORDERPREFIX + str(self.stopOrderCount)
-
-        so = StopOrder()
-        so.vtSymbol = vtSymbol
-        so.orderType = orderType
-        so.price = price
-        so.volume = volume
-        so.strategy = strategy
-        so.stopOrderID = stopOrderID
-        so.status = STOPORDER_WAITING
-
-        if orderType == CTAORDER_BUY:
-            so.direction = DIRECTION_LONG
-            so.offset = OFFSET_OPEN
-        elif orderType == CTAORDER_SELL:
-            so.direction = DIRECTION_SHORT
-            so.offset = OFFSET_CLOSE
-        elif orderType == CTAORDER_SHORT:
-            so.direction = DIRECTION_SHORT
-            so.offset = OFFSET_OPEN
-        elif orderType == CTAORDER_COVER:
-            so.direction = DIRECTION_LONG
-            so.offset = OFFSET_CLOSE
-
-            # 保存stopOrder对象到字典中
-        self.stopOrderDict[stopOrderID] = so
-        self.workingStopOrderDict[stopOrderID] = so
-
-        return stopOrderID
+        startegyEngine.stopOrderDict[stopOrder.stopOrderID] = stopOrder
+        startegyEngine.workingStopOrderDict[stopOrder.stopOrderID] = stopOrder
+        #
+        # return stopOrderID
 
     # ----------------------------------------------------------------------
-    def cancelStopOrder(self, stopOrderID):
+    def cancelStopOrder(self, strategyEngine,stopOrderID):
         """撤销停止单"""
         # 检查停止单是否存在
-        if stopOrderID in self.workingStopOrderDict:
-            so = self.workingStopOrderDict[stopOrderID]
+        if stopOrderID in strategyEngine.workingStopOrderDict:
+            so = strategyEngine.workingStopOrderDict[stopOrderID]
             so.status = STOPORDER_CANCELLED
-            del self.workingStopOrderDict[stopOrderID]
+            del strategyEngine.workingStopOrderDict[stopOrderID]
 
     # ----------------------------------------------------------------------
-    def processStopOrder(self, tick):
+    def processStopOrder(self, ticks):
         """收到行情后处理本地停止单（检查是否要立即发出）"""
-        vtSymbol = tick.vtSymbol
-
-        # 首先检查是否有策略交易该合约
-        if vtSymbol in self.tickStrategyDict:
-            # 遍历等待中的停止单，检查是否会被触发
-            for so in self.workingStopOrderDict.values():
-                if so.vtSymbol == vtSymbol:
-                    longTriggered = so.direction == DIRECTION_LONG and tick.lastPrice >= so.price  # 多头停止单被触发
-                    shortTriggered = so.direction == DIRECTION_SHORT and tick.lastPrice <= so.price  # 空头停止单被触发
-
-                    if longTriggered or shortTriggered:
-                        # 买入和卖出分别以涨停跌停价发单（模拟市价单）
-                        if so.direction == DIRECTION_LONG:
-                            price = tick.upperLimit
-                        else:
-                            price = tick.lowerLimit
-
-                        so.status = STOPORDER_TRIGGERED
-                        self.sendOrder(so.vtSymbol, so.orderType, price, so.volume, so.strategy)
-                        del self.workingStopOrderDict[so.stopOrderID]
+        # vtSymbol = tick.vtSymbol
+        #
+        # # 首先检查是否有策略交易该合约
+        # if vtSymbol in self.tickStrategyDict:
+        #     # 遍历等待中的停止单，检查是否会被触发
+        #     for so in self.workingStopOrderDict.values():
+        #         if so.vtSymbol == vtSymbol:
+        #             longTriggered = so.direction == DIRECTION_LONG and tick.lastPrice >= so.price  # 多头停止单被触发
+        #             shortTriggered = so.direction == DIRECTION_SHORT and tick.lastPrice <= so.price  # 空头停止单被触发
+        #
+        #             if longTriggered or shortTriggered:
+        #                 # 买入和卖出分别以涨停跌停价发单（模拟市价单）
+        #                 if so.direction == DIRECTION_LONG:
+        #                     price = tick.upperLimit
+        #                 else:
+        #                     price = tick.lowerLimit
+        #
+        #                 so.status = STOPORDER_TRIGGERED
+        #                 self.sendOrder(so.vtSymbol, so.orderType, price, so.volume, so.strategy)
+        #                 del self.workingStopOrderDict[so.stopOrderID]
 
     # ----------------------------------------------------------------------
-    def processTickEvent(self, event):
+    def processTickEvent(self, event,strategyInstance):
         """处理行情推送"""
-        tick = event.dict_['data']
-        # 收到tick行情后，先处理本地停止单（检查是否要立即发出）
-        self.processStopOrder(tick)
-
-        # 推送tick到对应的策略实例进行处理
-        if tick.vtSymbol in self.tickStrategyDict:
-            # 添加datetime字段
-            if not tick.datetime:
-                tick.datetime = datetime.strptime(' '.join([tick.date, tick.time]), '%Y%m%d %H:%M:%S.%f')
-
-            # 逐个推送到策略实例中
-            l = self.tickStrategyDict[tick.vtSymbol]
-            for strategy in l:
-                self.callStrategyFunc(strategy, strategy.onTick, tick)
+        ticks = event.dict_['data']
+        #  收到tick行情后，先处理本地停止单（检查是否要立即发出）
+        self.processStopOrder(ticks)
+        #
+        # # 推送tick到对应的策略实例进行处理
+        # if tick.vtSymbol in self.tickStrategyDict:
+        #     # 添加datetime字段
+        #     if not tick.datetime:
+        #         tick.datetime = datetime.strptime(' '.join([tick.date, tick.time]), '%Y%m%d %H:%M:%S.%f')
+        #
+        #     # 逐个推送到策略实例中
+        #     l = self.tickStrategyDict[tick.vtSymbol]
+        #     for strategy in l:
+        self.callStrategyFunc(strategyInstance, strategyInstance.onTick, ticks)
 
     # ----------------------------------------------------------------------
-    def processOrderEvent(self, event):
+    def processOrderEvent(self, event,strategyInstance):
         """处理委托推送"""
         order = event.dict_['data']
-
-        if order.vtOrderID in self.orderStrategyDict:
-            strategy = self.orderStrategyDict[order.vtOrderID]
-            self.callStrategyFunc(strategy, strategy.onOrder, order)
+        self.callStrategyFunc(strategyInstance,strategyInstance.onOrder,order)
+        # if order.vtOrderID in self.orderStrategyDict:
+        #     strategy = self.orderStrategyDict[order.vtOrderID]
+        #     self.callStrategyFunc(strategy, strategy.onOrder, order)
 
     # ----------------------------------------------------------------------
     def processTradeEvent(self, event):
         """处理成交推送"""
-        trade = event.dict_['data']
-
-        # 过滤已经收到过的成交回报
-        if trade.vtTradeID in self.tradeSet:
-            return
-        self.tradeSet.add(trade.vtTradeID)
-
-        # 将成交推送到策略对象中
-        if trade.vtOrderID in self.orderStrategyDict:
-            strategy = self.orderStrategyDict[trade.vtOrderID]
-
-            # 计算策略持仓
-            if trade.direction == constant.DIRECTION_LONG:
-                strategy.pos += trade.volume
-            else:
-                strategy.pos -= trade.volume
-
-            self.callStrategyFunc(strategy, strategy.onTrade, trade)
-
-        # 更新持仓缓存数据
-        if trade.vtSymbol in self.tickStrategyDict:
-            posBuffer = self.posBufferDict.get(trade.vtSymbol, None)
-            if not posBuffer:
-                posBuffer = PositionBuffer()
-                posBuffer.vtSymbol = trade.vtSymbol
-                self.posBufferDict[trade.vtSymbol] = posBuffer
-            posBuffer.updateTradeData(trade)
+        # trade = event.dict_['data']
+        #
+        # # 过滤已经收到过的成交回报
+        # if trade.vtTradeID in self.tradeSet:
+        #     return
+        # self.tradeSet.add(trade.vtTradeID)
+        #
+        # # 将成交推送到策略对象中
+        # if trade.vtOrderID in self.orderStrategyDict:
+        #     strategy = self.orderStrategyDict[trade.vtOrderID]
+        #
+        #     # 计算策略持仓
+        #     if trade.direction == constant.DIRECTION_LONG:
+        #         strategy.pos += trade.volume
+        #     else:
+        #         strategy.pos -= trade.volume
+        #
+        #     self.callStrategyFunc(strategy, strategy.onTrade, trade)
+        #
+        # # 更新持仓缓存数据
+        # if trade.vtSymbol in self.tickStrategyDict:
+        #     posBuffer = self.posBufferDict.get(trade.vtSymbol, None)
+        #     if not posBuffer:
+        #         posBuffer = PositionBuffer()
+        #         posBuffer.vtSymbol = trade.vtSymbol
+        #         self.posBufferDict[trade.vtSymbol] = posBuffer
+        #     posBuffer.updateTradeData(trade)
 
             # ----------------------------------------------------------------------
 
     def processPositionEvent(self, event):
         """处理持仓推送"""
-        pos = event.dict_['data']
-
-        # 更新持仓缓存数据
-        if pos.vtSymbol in self.tickStrategyDict:
-            posBuffer = self.posBufferDict.get(pos.vtSymbol, None)
-            if not posBuffer:
-                posBuffer = PositionBuffer()
-                posBuffer.vtSymbol = pos.vtSymbol
-                self.posBufferDict[pos.vtSymbol] = posBuffer
-            posBuffer.updatePositionData(pos)
+        # pos = event.dict_['data']
+        #
+        # # 更新持仓缓存数据
+        # if pos.vtSymbol in self.tickStrategyDict:
+        #     posBuffer = self.posBufferDict.get(pos.vtSymbol, None)
+        #     if not posBuffer:
+        #         posBuffer = PositionBuffer()
+        #         posBuffer.vtSymbol = pos.vtSymbol
+        #         self.posBufferDict[pos.vtSymbol] = posBuffer
+        #     posBuffer.updatePositionData(pos)
 
     # ----------------------------------------------------------------------
     def registerEvent(self):

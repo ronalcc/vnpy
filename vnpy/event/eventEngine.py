@@ -55,6 +55,9 @@ class EventEngine(object):
         """初始化事件引擎"""
         # 事件队列
         self.__queue = Queue()
+
+        #tick数据事件
+        self.__tick_queue_list = {}
         
         # 事件引擎开关
         self.__active = False
@@ -164,7 +167,12 @@ class EventEngine(object):
     def put(self, event):
         """向事件队列中存入事件"""
         self.__queue.put(event)
-        
+
+    #----------------------------------------------------------------------
+    def putTick(self, event):
+        """向每个策略实例的tick事件队列中存入事件"""
+        for tick_queue in self.__tick_queue_list[event.type_]:
+            tick_queue.put(event)
     #----------------------------------------------------------------------
     def registerGeneralHandler(self, handler):
         """注册通用事件处理函数监听"""

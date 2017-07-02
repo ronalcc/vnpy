@@ -9,6 +9,8 @@ from vnpy.trader.vtConstant import *
 from vnpy.trader.app.ctaStrategy.ctaBase import *
 from vnpy.trader.language import *
 from abc import ABCMeta,abstractmethod,abstractproperty
+from Queue import Queue, Empty
+from threading import Thread
 
 ########################################################################
 class Strategy(object):
@@ -44,11 +46,20 @@ class Strategy(object):
     #            'trading',
     #            'pos']
 
-    # ----------------------------------------------------------------------
-    def __init__(self, strategyEngine, setting):
-        """Constructor"""
-        self.strategyEngine = strategyEngine
+    #tick数据事件队列
 
+
+
+    # ----------------------------------------------------------------------
+    def __init__(self, strategyEngine, strategyInstance):
+        """Constructor"""
+
+        self.strategyEngine = strategyEngine
+        self.instance = strategyInstance
+        self.tick_queue = Queue()
+        self.thread = Thread(target=self.run)
+
+        self.thread.start()
         # 设置策略的参数
         # if setting:
         #     d = self.__dict__
@@ -57,16 +68,22 @@ class Strategy(object):
         #             d[key] = setting[key]
 
     # ----------------------------------------------------------------------
+    def run(self):
+        """启动策略实例后的操作"""
+
+        self.strategyEngine.regist
+
+    # -----------------------------------------------------------------------
     @abstractmethod
     def onInit(self):
          """初始化策略（必须由用户继承实现）"""
          pass
 
     # # ----------------------------------------------------------------------
-    @abstractmethod
+
     def onStart(self):
-         """启动策略（必须由用户继承实现）"""
-         pass
+         """启动策略实例（必须由用户继承实现）"""
+         self.event_thread.start()
     #
     # # ----------------------------------------------------------------------
     @abstractmethod
