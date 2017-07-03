@@ -57,7 +57,7 @@ class EventEngine(object):
         self.__queue = Queue()
 
         #tick数据事件
-        self.__tick_queue_list = {}
+        self.queue_dict = {}
         
         # 事件引擎开关
         self.__active = False
@@ -171,8 +171,26 @@ class EventEngine(object):
     #----------------------------------------------------------------------
     def putTick(self, event):
         """向每个策略实例的tick事件队列中存入事件"""
-        for tick_queue in self.__tick_queue_list[event.type_]:
+        #if self.__tick_queue_dict[event.type_] is not None:
+        for tick_queue in self.queue_dict['tick'][event.type_]:
             tick_queue.put(event)
+
+    def QueueInit(self,symbol,symbolType):
+        """tick事件数组初始化，在向gateWay调用行情订阅的时候，需要调用此方法"""
+        if self.queue_dict[symbolType] is None:
+            self.queue_dict[symbolType] = {}
+        if self.queue_dict[symbolType][symbol] is None:
+            self.queue_dict[symbolType][symbol] =[]
+
+    #----------------------------------------------------------------------
+    def tickListen(self,symbols,queue):
+        """各个策略实例的tick事件加入推送队列"""
+        if self.queue_dict['tick'] is None:
+            self.queue_dict['tick'] = {}
+        for symbol in symbols:
+            if self.queue_dict['tick'][symbol] is None:
+                self.queue_dict['tick'][symbol] = []
+            self.queue_dict['tick'][symbol].append(queue)
     #----------------------------------------------------------------------
     def registerGeneralHandler(self, handler):
         """注册通用事件处理函数监听"""

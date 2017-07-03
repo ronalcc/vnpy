@@ -32,10 +32,10 @@ class VtGateway(object):
         # event2.dict_['data'] = tick
         # self.eventEngine.put(event2)
 
-        #重写行情推送及分发方式
+        #重写tick行情推送及分发方式
         event = Event(type_=tick.vtSymbol)
         event.dict_['data']  = tick
-        self.eventEngine.
+        self.eventEngine.putTick(event)
 
     #----------------------------------------------------------------------
     def onTrade(self, trade):

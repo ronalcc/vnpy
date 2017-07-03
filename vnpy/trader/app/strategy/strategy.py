@@ -11,7 +11,7 @@ from vnpy.trader.language import *
 from abc import ABCMeta,abstractmethod,abstractproperty
 from Queue import Queue, Empty
 from threading import Thread
-
+from vnpy.trader.vtGateway import VtSubscribeReq
 ########################################################################
 class Strategy(object):
     """策略模板"""
@@ -70,8 +70,23 @@ class Strategy(object):
     # ----------------------------------------------------------------------
     def run(self):
         """启动策略实例后的操作"""
+        #订阅策略实例所涉及的合约或分腿
+        symbolList = []
+        for leg in self.instance['legs']:
+            symbolList.append(leg['symbol'])
+        self.strategyEngine.eventEngine.tickListen(symbolList,self.tick_queue)
+        for symbol in symbolList:
+         contract = self.mainEngine.getContract(symbol)
+         if contract:
+             req = VtSubscribeReq()
+             req.symbol = contract.symbol
+             req.exchange = contract.exchange
+         self.mainEngine.subscribe(req, contract.gatewayName)
 
-        self.strategyEngine.regist
+    #------------------------------------------------------------------------
+    # def  getMarketDataType(self):
+    #     if __name__ == '__main__':
+    #         self.strategyEngine.mainEngine.query("strategy","strategyInstance",{"strategyName":self.strategyInstance.strategyInstanceName})
 
     # -----------------------------------------------------------------------
     @abstractmethod
