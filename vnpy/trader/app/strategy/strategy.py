@@ -59,18 +59,6 @@ class Strategy(object):
         self.tick_queue = Queue()
         self.thread = Thread(target=self.run)
 
-        self.thread.start()
-        # 设置策略的参数
-        # if setting:
-        #     d = self.__dict__
-        #     for key in self.paramList:
-        #         if key in setting:
-        #             d[key] = setting[key]
-
-    # ----------------------------------------------------------------------
-    def run(self):
-        """启动策略实例后的操作"""
-        #订阅策略实例所涉及的合约或分腿
         symbolList = []
         for leg in self.instance['legs']:
             symbolList.append(leg['symbol'])
@@ -82,6 +70,21 @@ class Strategy(object):
              req.symbol = contract.symbol
              req.exchange = contract.exchange
          self.mainEngine.subscribe(req, contract.gatewayName)
+        # 设置策略的参数
+        # if setting:
+        #     d = self.__dict__
+        #     for key in self.paramList:
+        #         if key in setting:
+        #             d[key] = setting[key]
+
+    # ----------------------------------------------------------------------
+    def run(self):
+        """行情驱动启动执行线程"""
+        event = self.ticks
+        if self.event.type_ in self.__handlers:
+            # 若存在，则按顺序将事件传递给处理函数执行
+            [handler(event) for handler in self.__handlers[event.type_]]
+
 
     #------------------------------------------------------------------------
     # def  getMarketDataType(self):

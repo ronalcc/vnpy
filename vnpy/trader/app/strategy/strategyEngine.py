@@ -32,6 +32,7 @@ from vnpy.trader.vtFunction import todayDate
 
 from vnpy.trader.app.ctaStrategy.strategy import STRATEGY_CLASS
 from vnpy.trader.app.strategy.strategy import *
+from collections import defaultdict
 
 
 ########################################################################
@@ -78,6 +79,10 @@ class StrategyEngine():
 
         # 引擎类型为实盘
         self.engineType = ENGINETYPE_TRADING
+
+        #处理函数的字典{事件类型：处理函数数组}
+        self.__handlers = defaultdict(list)
+
 
         # 注册事件监听
         self.registerEvent()
@@ -301,10 +306,20 @@ class StrategyEngine():
     # ----------------------------------------------------------------------
     def registerEvent(self):
         """注册事件监听"""
-        self.eventEngine.register(EVENT_TICK, self.processTickEvent)
-        self.eventEngine.register(EVENT_ORDER, self.processOrderEvent)
-        self.eventEngine.register(EVENT_TRADE, self.processTradeEvent)
-        self.eventEngine.register(EVENT_POSITION, self.processPositionEvent)
+        self.register(EVENT_TICKS, self.processTickEvent)
+        self.register(EVENT_ORDER, self.processOrderEvent)
+        self.register(EVENT_TRADE, self.processTradeEvent)
+        self.register(EVENT_POSITION, self.processPositionEvent)
+
+    #------------------------------------------------------------------------
+    def register(self, type_, handler):
+        """注册事件处理函数监听"""
+        # 尝试获取该事件类型对应的处理函数列表，若无defaultDict会自动创建新的list
+        handlerList = self.__handlers[type_]
+
+        # 若要注册的处理器不在该事件的处理器列表中，则注册该事件
+        if handler not in handlerList:
+            handlerList.append(handler)
 
     # ----------------------------------------------------------------------
     def insertData(self, dbName, collectionName, data):
