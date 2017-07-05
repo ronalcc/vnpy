@@ -33,6 +33,7 @@ from vnpy.trader.vtFunction import todayDate
 from vnpy.trader.app.ctaStrategy.strategy import STRATEGY_CLASS
 from vnpy.trader.app.strategy.strategy import *
 from collections import defaultdict
+from vnpy.trader.language import text
 
 
 ########################################################################
@@ -87,8 +88,8 @@ class StrategyEngine():
         # 注册事件监听
         self.registerEvent()
 
-    # ------------------------------------------------------------------------
-       def sendOrder(self,req,strategyInstance):
+    # -------------------------------------------------------------------------------------------------------
+    def sendOrder(self,req,strategyInstance):
            contract  = self.mainEngine.getContract(req.symbol)
            vtOrderID = self.mainEngine.sendOrder(req, contract.gatewayName)  # 发单
            self.orderStrategyInstanceDict[vtOrderID] = strategyInstance  # 保存vtOrderID和策略的映射关系
@@ -231,6 +232,10 @@ class StrategyEngine():
         #                 del self.workingStopOrderDict[so.stopOrderID]
 
     # ----------------------------------------------------------------------
+    def processTicksEvent(self, event,strategyInstance):
+        pass
+
+    # ----------------------------------------------------------------------
     def processTickEvent(self, event,strategyInstance):
         """处理行情推送"""
         ticks = event.dict_['data']
@@ -306,7 +311,7 @@ class StrategyEngine():
     # ----------------------------------------------------------------------
     def registerEvent(self):
         """注册事件监听"""
-        self.register(EVENT_TICKS, self.processTickEvent)
+        self.register(EVENT_TICKS, self.processTicksEvent)
         self.register(EVENT_ORDER, self.processOrderEvent)
         self.register(EVENT_TRADE, self.processTradeEvent)
         self.register(EVENT_POSITION, self.processPositionEvent)
@@ -368,29 +373,31 @@ class StrategyEngine():
 
         # ----------------------------------------------------------------------
 
-    def loadStrategy(self, l):
-        for strategy in l:
-            try:
-                name = strategy['strategyName']
-                className = strategy['strategyName']
-
-            except Exception, e:
-                self.writeCtaLog(u'载入策略出错：%s' % e)
-                return
-
-                # 获取策略类
-            strategyClass = STRATEGY_CLASS.get(className, None)
-            if not strategyClass:
-                self.writeCtaLog(u'找不到策略类：%s' % className)
-                return
-
-            # 防止策略重名
-            if name in self.strategyDict:
-                self.writeCtaLog(u'策略实例重名：%s' % name)
-            else:
-                # 创建策略实例
-                strategy = strategyClass(self, strategy)
-                self.strategyDict[name] = strategy
+    def loadStrategy(self, _id):
+        strategy = self.mainEngine.dbQuery("strategy", "strategyInstance",{"_id":_id})
+        return strategy
+        # for strategy in l:
+        #     try:
+        #         name = strategy['strategyName']
+        #         className = strategy['strategyName']
+        #
+        #     except Exception, e:
+        #         self.writeCtaLog(u'载入策略出错：%s' % e)
+        #         return
+        #
+        #         # 获取策略类
+        #     strategyClass = STRATEGY_CLASS.get(className, None)
+        #     if not strategyClass:
+        #         self.writeCtaLog(u'找不到策略类：%s' % className)
+        #         return
+        #
+        #     # 防止策略重名
+        #     if name in self.strategyDict:
+        #         self.writeCtaLog(u'策略实例重名：%s' % name)
+        #     else:
+        #         # 创建策略实例
+        #         strategy = strategyClass(self, strategy)
+        #         self.strategyDict[name] = strategy
 
 
                 # # 保存Tick映射关系
@@ -607,22 +614,22 @@ class PositionBuffer(object):
     # ----------------------------------------------------------------------
     def __init__(self):
         """Constructor"""
-        self.vtSymbol = EMPTY_STRING
+        self.vtSymbol = constant.EMPTY_STRING
 
         # 多头
-        self.longPosition = EMPTY_INT
-        self.longToday = EMPTY_INT
-        self.longYd = EMPTY_INT
+        self.longPosition = constant.EMPTY_INT
+        self.longToday = constant.EMPTY_INT
+        self.longYd = constant.EMPTY_INT
 
         # 空头
-        self.shortPosition = EMPTY_INT
-        self.shortToday = EMPTY_INT
-        self.shortYd = EMPTY_INT
+        self.shortPosition = constant.EMPTY_INT
+        self.shortToday = constant.EMPTY_INT
+        self.shortYd = constant.EMPTY_INT
 
     # ----------------------------------------------------------------------
     def updatePositionData(self, pos):
         """更新持仓数据"""
-        if pos.direction == DIRECTION_LONG:
+        if pos.direction == constant.DIRECTION_LONG:
             self.longPosition = pos.position
             self.longYd = pos.ydPosition
             self.longToday = self.longPosition - self.longYd
@@ -634,13 +641,13 @@ class PositionBuffer(object):
     # ----------------------------------------------------------------------
     def updateTradeData(self, trade):
         """更新成交数据"""
-        if trade.direction == DIRECTION_LONG:
+        if trade.direction == constant.DIRECTION_LONG:
             # 多方开仓，则对应多头的持仓和今仓增加
-            if trade.offset == OFFSET_OPEN:
+            if trade.offset == constant.OFFSET_OPEN:
                 self.longPosition += trade.volume
                 self.longToday += trade.volume
             # 多方平今，对应空头的持仓和今仓减少
-            elif trade.offset == OFFSET_CLOSETODAY:
+            elif trade.offset == constant.OFFSET_CLOSETODAY:
                 self.shortPosition -= trade.volume
                 self.shortToday -= trade.volume
             # 多方平昨，对应空头的持仓和昨仓减少
@@ -649,10 +656,10 @@ class PositionBuffer(object):
                 self.shortYd -= trade.volume
         else:
             # 空头和多头相同
-            if trade.offset == OFFSET_OPEN:
+            if trade.offset == constant.OFFSET_OPEN:
                 self.shortPosition += trade.volume
                 self.shortToday += trade.volume
-            elif trade.offset == OFFSET_CLOSETODAY:
+            elif trade.offset == constant.OFFSET_CLOSETODAY:
                 self.longPosition -= trade.volume
                 self.longToday -= trade.volume
             else:

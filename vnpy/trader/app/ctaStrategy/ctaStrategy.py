@@ -11,21 +11,15 @@ from vnpy.trader.app.ctaStrategy.ctaBase import *
 
 
 ########################################################################
-class CtaTemplate(Strategy):
+class CtaStrategy(Strategy):
     """CTA策略模板"""
 
 
     #----------------------------------------------------------------------
-    def __init__(self, ctaEngine, setting):
+    def __init__(self, ctaEngine, _id):
         """Constructor"""
-        self.ctaEngine = ctaEngine
+        super(CtaStrategy,self).__init__(ctaEngine,_id)
 
-        # 设置策略的参数
-        if setting:
-            d = self.__dict__
-            for key in self.paramList:
-                if key in setting:
-                    d[key] = setting[key]
     
     #----------------------------------------------------------------------
     def onInit(self):

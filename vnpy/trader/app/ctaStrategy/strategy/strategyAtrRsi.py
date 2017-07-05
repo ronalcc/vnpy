@@ -78,9 +78,9 @@ class AtrRsiStrategy(CtaTemplate):
                'rsiSell']  
 
     #----------------------------------------------------------------------
-    def __init__(self, ctaEngine, setting):
+    def __init__(self, ctaEngine, _id):
         """Constructor"""
-        super(AtrRsiStrategy, self).__init__(ctaEngine, setting)
+        super(AtrRsiStrategy, self).__init__(ctaEngine, _id)
         
         # 注意策略类中的可变对象属性（通常是list和dict等），在策略初始化时需要重新创建，
         # 否则会出现多个策略实例之间数据共享的情况，有可能导致潜在的策略逻辑错误风险，

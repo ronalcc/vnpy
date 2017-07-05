@@ -5,7 +5,7 @@ from Queue import Queue, Empty
 from threading import Thread
 from time import sleep
 from collections import defaultdict
-
+from random import *
 # 第三方模块
 from qtpy.QtCore import QTimer
 
@@ -56,14 +56,35 @@ class EventEngine(object):
         # 事件队列
         self.__queue = Queue()
 
-        #tick数据事件
-        self.queue_dict = {}
+        #tick数据相关
+        #tick数据事件字典，每个合约对应一个queue
+        self.__tick_queue_dict = {}
+        #每个时刻所有跟踪的的tick的快照
+        self.__tick_snapshot = {}
+
+
+        #策略盯的合约的行情数据的相关数据结构
+        #字典{strategyInstance Id:{tick:[111,333],bat:[222,999]}}
+        self.__strategy_market_dict = {}
+        #字典{strategyInstance Id:event queue}
+        self.__strategy_eventQueue_dict = {}
+
+
+        #一个线程池数组，生成多个线程来分组处理注册的策略实例
+        self.__sorter_threads = []
+        self.__sorter_size = 3
+        #一个策略实例分组的数组
+        self.__sorter_group_list = []
+
+
+
+
         
         # 事件引擎开关
         self.__active = False
         
         # 事件处理线程
-        self.__thread = Thread(target = self.__run)
+        #self.__thread = Thread(target = self.__run)
         
         # 计时器，用于触发计时器事件
         self.__timer = QTimer()
@@ -75,18 +96,35 @@ class EventEngine(object):
         
         # __generalHandlers是一个列表，用来保存通用回调函数（所有事件均调用）
         self.__generalHandlers = []
-        
+
+        for i in range(self.__sorter_size):
+             self.__tick_sorter_threads.append(Thread(target=self.sorter_run))
+             self.__strategy_group_list.append(list())
     #----------------------------------------------------------------------
     def __run(self):
-        """引擎运行"""
+        #引擎运行
+        #启动tick事件分拣线程
+        for sorter in self.__tick_sorter_threads:
+              sorter.start()
+
         while self.__active == True:
             try:
-                event = self.__queue.get(block = True, timeout = 1)  # 获取事件的阻塞时间设为1秒
-                self.__process(event)
+                #event = self.__queue.get(block = True, timeout = 1)  # 获取事件的阻塞时间设为1秒
+                #self.__process(event)
+                self.tick_snapshot();
             except Empty:
                 pass
             
     #----------------------------------------------------------------------
+    def sorter_run(self):
+        #tick按策略进行分拣
+        pass
+    #----------------------------------------------------------------------
+    def tick_snapshot(self):
+        #取出tick队列中的数据赋值到tick快照中
+        for key in self.__tick_queue_dict:
+            self.__tick_snapshot[key] = self.__tick_queue_dict[key].get(block = True,timeout=1)
+
     def __process(self, event):
         """处理事件"""
         # 检查是否存在对该事件进行监听的处理函数
@@ -172,25 +210,40 @@ class EventEngine(object):
     def putTick(self, event):
         """向每个策略实例的tick事件队列中存入事件"""
         #if self.__tick_queue_dict[event.type_] is not None:
-        for tick_queue in self.queue_dict['tick'][event.type_]:
-            tick_queue.put(event)
+        self.__tick_queue_dict[event.dict_['id']].put(event)
 
-    def QueueInit(self,symbol,symbolType):
+    def QueueInit(self,symbol,type):
         """tick事件数组初始化，在向gateWay调用行情订阅的时候，需要调用此方法"""
-        if self.queue_dict[symbolType] is None:
-            self.queue_dict[symbolType] = {}
-        if self.queue_dict[symbolType][symbol] is None:
-            self.queue_dict[symbolType][symbol] =[]
+        if type == 'tick':
+         if  self.__tick_queue_dict[symbol] is None:
+              self.__tick_queue_dict[symbol] = Queue()
 
     #----------------------------------------------------------------------
-    def tickListen(self,symbols,queue):
-        """各个策略实例的tick事件加入推送队列"""
-        if self.queue_dict['tick'] is None:
-            self.queue_dict['tick'] = {}
-        for symbol in symbols:
-            if self.queue_dict['tick'][symbol] is None:
-                self.queue_dict['tick'][symbol] = []
-            self.queue_dict['tick'][symbol].append(queue)
+    def strategyMarketListener(self,strategy):
+      """各个策略实例加入行情事件监听"""
+      if strategy.market['ticks'] is not None:
+            self.strategyTickListener(self,strategy)
+      if strategy.market['bars'] is not None:
+            self.strategyBarListener(self, strategy)
+      if self.__strategy_market_dict[strategy._id] is None:
+        self.__strategy_market_dict[strategy._id] = {};
+      self.__sorter_group_list[random.randint(0,self.__sorter_size)].append(strategy._id)
+      self.__strategy_eventQueue_dict[strategy._id] = strategy.eventQueue
+
+    #----------------------------------------------------------------------
+    def strategyTickListener(self,strategy):
+        for tick in strategy.market['ticks']:
+             if self.__strategy_market_dict[strategy._id]['tick'] is None:
+                 self.__strategy_market_dict[strategy._id]['tick'] = []
+             self.__strategy_market_dict[strategy._id]['tick'].append(tick.symbol)
+             if self.__tick_queue_dict[tick.symbol] is None:
+                self.__tick_queue_dict[tick.symbol] = Queue()
+
+    #----------------------------------------------------------------------
+    def strategyBarListener(self,strategy):
+        pass
+
+
     #----------------------------------------------------------------------
     def registerGeneralHandler(self, handler):
         """注册通用事件处理函数监听"""

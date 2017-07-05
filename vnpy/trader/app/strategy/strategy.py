@@ -16,13 +16,13 @@ from vnpy.trader.vtGateway import VtSubscribeReq
 class Strategy(object):
     """策略模板"""
 
-    # 策略类的名称和作者
-    className = 'StrategyTemplate'
-    author = constant.EMPTY_UNICODE
-
-    # MongoDB数据库的名称，K线数据库默认为1分钟
-    tickDbName = TICK_DB_NAME
-    barDbName = MINUTE_DB_NAME
+    # # 策略类的名称和作者
+    # className = 'StrategyTemplate'
+    # author = constant.EMPTY_UNICODE
+    #
+    # # MongoDB数据库的名称，K线数据库默认为1分钟
+    # tickDbName = TICK_DB_NAME
+    # barDbName = MINUTE_DB_NAME
 
     # 策略的基本参数
     #name = constant.EMPTY_UNICODE  # 策略实例名称
@@ -30,10 +30,10 @@ class Strategy(object):
     #productClass = constant.EMPTY_STRING  # 产品类型（只有IB接口需要）
     #currency = constant.EMPTY_STRING  # 货币（只有IB接口需要）
 
-    # 策略的基本变量，由引擎管理
-    inited = False  # 是否进行了初始化
-    trading = False  # 是否启动交易，由引擎管理
-    pos = 0  # 持仓情况
+    # # 策略的基本变量，由引擎管理
+    # inited = False  # 是否进行了初始化
+    # trading = False  # 是否启动交易，由引擎管理
+    # pos = 0  # 持仓情况
     #
     # # 参数列表，保存了参数的名称
     # paramList = ['name',
@@ -51,25 +51,30 @@ class Strategy(object):
 
 
     # ----------------------------------------------------------------------
-    def __init__(self, strategyEngine, strategyInstance):
-        """Constructor"""
+    def __init__(self, strategyEngine, _id):
+        #初始化策略实例
+
 
         self.strategyEngine = strategyEngine
-        self.instance = strategyInstance
-        self.tick_queue = Queue()
+
+        self.eventQueue = Queue()
         self.thread = Thread(target=self.run)
 
-        symbolList = []
-        for leg in self.instance['legs']:
-            symbolList.append(leg['symbol'])
-        self.strategyEngine.eventEngine.tickListen(symbolList,self.tick_queue)
-        for symbol in symbolList:
-         contract = self.mainEngine.getContract(symbol)
-         if contract:
-             req = VtSubscribeReq()
-             req.symbol = contract.symbol
-             req.exchange = contract.exchange
-         self.mainEngine.subscribe(req, contract.gatewayName)
+        #监听状态
+        self.listener_status = 0;
+
+        #运行状态
+        self.run_status = 0;
+
+        self.loadStrategy(_id)
+
+        # for symbol in symbolList:
+        #  contract = self.mainEngine.getContract(symbol)
+        #  if contract:
+        #      req = VtSubscribeReq()
+        #      req.symbol = contract.symbol
+        #      req.exchange = contract.exchange
+        #  self.mainEngine.subscribe(req, contract.gatewayName)
         # 设置策略的参数
         # if setting:
         #     d = self.__dict__
@@ -79,9 +84,9 @@ class Strategy(object):
 
     # ----------------------------------------------------------------------
     def run(self):
-        """行情驱动启动执行线程"""
-        event = self.ticks
-        if self.event.type_ in self.__handlers:
+      """行情驱动启动执行线程"""
+      for event in self.eventQueue:
+        if event.type_ in self.strategyEngine.__handlers:
             # 若存在，则按顺序将事件传递给处理函数执行
             [handler(event) for handler in self.__handlers[event.type_]]
 
@@ -92,6 +97,40 @@ class Strategy(object):
     #         self.strategyEngine.mainEngine.query("strategy","strategyInstance",{"strategyName":self.strategyInstance.strategyInstanceName})
 
     # -----------------------------------------------------------------------
+    def loadStrategy(self,_id):
+        instance = self.strategyEngine.loadStrategy(_id)
+        self._id = _id
+        self.strateyName = instance.strategyName
+        self.strategyInstanceName = instance.strategyInstanceName
+        self.status = instance.status
+        self.startDate = instance.startDate
+        self.endDate = instance.endDate
+        self.market = instance.market
+        self.paramList = instance.paramList
+
+    # -----------------------------------------------------------------------
+    def  startMarketListner(self):
+        # 开始监听本策略的行情并订阅行情数据
+        # 在事件引擎中注册对本策略的监听
+        self.strategyEngine.eventEngine.strategyMarketListener(self)
+
+        # 订阅策略涉及的行情数据
+        self.subscribeMarket(self.market)
+    #------------------------------------------------------------------------
+    def subscribeMarket(self,market):
+        #订阅策略涉及的行情数据
+        if market['ticks'] is not None:
+                for tick in market['ticks']:
+                    req = VtSubscribeReq()
+                    req.symbol = tick['symbol']
+                    self.mainEngine.subscribe(req, tick['gateWay'])
+
+    # -----------------------------------------------------------------------
+    @abstractmethod
+    def startListner(self):
+          pass
+    #------------------------------------------------------------------------
+
     @abstractmethod
     def onInit(self):
          """初始化策略（必须由用户继承实现）"""

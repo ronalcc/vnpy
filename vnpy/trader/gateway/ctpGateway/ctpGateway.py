@@ -146,7 +146,6 @@ class CtpGateway(VtGateway):
     #----------------------------------------------------------------------
     def subscribe(self, subscribeReq):
         """订阅行情"""
-        self.eventEngine.QueueInit(subscribeReq['symbol'],'tick')
         self.mdApi.subscribe(subscribeReq)
         
     #----------------------------------------------------------------------

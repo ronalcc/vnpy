@@ -35,6 +35,7 @@ class VtGateway(object):
         #重写tick行情推送及分发方式
         event = Event(type_=tick.vtSymbol)
         event.dict_['data']  = tick
+        event.dict_['id'] = tick.vtSymbol
         self.eventEngine.putTick(event)
 
     #----------------------------------------------------------------------

@@ -67,9 +67,9 @@ class DrEngine(object):
             # working = drSetting['working']
             # if not working:
             #     return
-            self.subscriptMarketData['tick'] = self.mainEngine.query("market","mySubscriptMaketData",{"type":"tick"})
+        self.subscriptMarketData['tick'] = self.mainEngine.query("market","mySubscriptMaketData",{"type":"tick"})
             
-            if 'tick' in self.subscriptMarketData:
+        if 'tick' in self.subscriptMarketData:
                 l = self.subscriptMarketData['tick']
                 
                 for setting in l:
@@ -124,10 +124,10 @@ class DrEngine(object):
             #         self.activeSymbolDict[vtSymbol] = activeSymbol
             
             # 启动数据插入线程
-            self.start()
+        self.start()
             
             # 注册事件监听
-            self.registerEvent()    
+        self.registerEvent()
 
     #----------------------------------------------------------------------
     def procecssTickEvent(self, event):
