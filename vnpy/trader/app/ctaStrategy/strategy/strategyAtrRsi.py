@@ -15,46 +15,17 @@ import numpy as np
 
 from vnpy.trader.vtObject import VtBarData
 from vnpy.trader.vtConstant import EMPTY_STRING
-from vnpy.trader.app.ctaStrategy.ctaTemplate import CtaTemplate
+from vnpy.trader.app.ctaStrategy.ctaStrategy import CtaStrategy
 
 
 ########################################################################
-class AtrRsiStrategy(CtaTemplate):
+class AtrRsiStrategy(CtaStrategy):
     """结合ATR和RSI指标的一个分钟线交易策略"""
     className = 'AtrRsiStrategy'
     author = u'用Python的交易员'
 
     # 策略参数
-    atrLength = 22          # 计算ATR指标的窗口数   
-    atrMaLength = 10        # 计算ATR均线的窗口数
-    rsiLength = 5           # 计算RSI的窗口数
-    rsiEntry = 16           # RSI的开仓信号
-    trailingPercent = 0.8   # 百分比移动止损
-    initDays = 10           # 初始化数据所用的天数
-    fixedSize = 1           # 每次交易的数量
 
-    # 策略变量
-    bar = None                  # K线对象
-    barMinute = EMPTY_STRING    # K线当前的分钟
-
-    bufferSize = 100                    # 需要缓存的数据的大小
-    bufferCount = 0                     # 目前已经缓存了的数据的计数
-    highArray = np.zeros(bufferSize)    # K线最高价的数组
-    lowArray = np.zeros(bufferSize)     # K线最低价的数组
-    closeArray = np.zeros(bufferSize)   # K线收盘价的数组
-    
-    atrCount = 0                        # 目前已经缓存了的ATR的计数
-    atrArray = np.zeros(bufferSize)     # ATR指标的数组
-    atrValue = 0                        # 最新的ATR指标数值
-    atrMa = 0                           # ATR移动平均的数值
-
-    rsiValue = 0                        # RSI指标的数值
-    rsiBuy = 0                          # RSI买开阈值
-    rsiSell = 0                         # RSI卖开阈值
-    intraTradeHigh = 0                  # 移动止损用的持仓期内最高价
-    intraTradeLow = 0                   # 移动止损用的持仓期内最低价
-
-    orderList = []                      # 保存委托代码的列表
 
     # 参数列表，保存了参数的名称
     paramList = ['name',
@@ -78,20 +49,58 @@ class AtrRsiStrategy(CtaTemplate):
                'rsiSell']  
 
     #----------------------------------------------------------------------
-    def __init__(self, ctaEngine, _id):
+    def __init__(self, strategyEngine,strategyInstance):
         """Constructor"""
-        super(AtrRsiStrategy, self).__init__(ctaEngine, _id)
+        super(AtrRsiStrategy, self).__init__(strategyEngine,strategyInstance)
         
         # 注意策略类中的可变对象属性（通常是list和dict等），在策略初始化时需要重新创建，
         # 否则会出现多个策略实例之间数据共享的情况，有可能导致潜在的策略逻辑错误风险，
         # 策略类中的这些可变对象属性可以选择不写，全都放在__init__下面，写主要是为了阅读
-        # 策略时方便（更多是个编程习惯的选择）        
+        # 策略时方便（更多是个编程习惯的选择）
+    # ---------------------------------------------------------------------
+        def onLoadStrategy(self):
+            # 从数据库中加载策略实例
+            super(AtrRsiStrategy, self).onLoadStrategy()
+            self.params = self.instance.params
+            # 策略参数
+            self.atrLength = self.params['atrLength'][0]  # 计算ATR指标的窗口数
+            self.atrMaLength = self.params['atrMaLength'][0]  # 计算ATR均线的窗口数
+            self.rsiLength = self.params['rsiLength'][0]  # 计算RSI的窗口数
+            self.rsiEntry = self.params['rsiEntry'][0]  # RSI的开仓信号
+            self.trailingPercent = self.params['trailingPercent'][0]  # 百分比移动止损
+            self.initDays = self.params['initDays'][0]  # 初始化数据所用的天数
+            self.fixedSize = self.params['fixedSize'][0]  # 每次交易的数量
+
+            # 策略变量
+            self.bar = None  # K线对象
+            self.barMinute = EMPTY_STRING  # K线当前的分钟
+
+            self.bufferSize = 100  # 需要缓存的数据的大小
+            self.bufferCount = 0  # 目前已经缓存了的数据的计数
+            self.highArray = np.zeros(self.bufferSize)  # K线最高价的数组
+            self.lowArray = np.zeros(self.bufferSize)  # K线最低价的数组
+            self.closeArray = np.zeros(self.bufferSize)  # K线收盘价的数组
+
+            self.atrCount = 0  # 目前已经缓存了的ATR的计数
+            self.atrArray = np.zeros(self.bufferSize)  # ATR指标的数组
+            self.atrValue = 0  # 最新的ATR指标数值
+            self.atrMa = 0  # ATR移动平均的数值
+
+            self.rsiValue = 0  # RSI指标的数值
+            self.rsiBuy = 0  # RSI买开阈值
+            self.rsiSell = 0  # RSI卖开阈值
+            self.intraTradeHigh = 0  # 移动止损用的持仓期内最高价
+            self.intraTradeLow = 0  # 移动止损用的持仓期内最低价
+
+            self.orderList = []  # 保存委托代码的列表
 
     #----------------------------------------------------------------------
+
     def onInit(self):
-        """初始化策略（必须由用户继承实现）"""
+        """初始化策略并启动监听（必须由用户继承实现）"""
         self.writeCtaLog(u'%s策略初始化' %self.name)
-    
+        super(AtrRsiStrategy, self).onInit()
+
         # 初始化RSI入场阈值
         self.rsiBuy = 50 + self.rsiEntry
         self.rsiSell = 50 - self.rsiEntry
@@ -107,6 +116,7 @@ class AtrRsiStrategy(CtaTemplate):
     def onStart(self):
         """启动策略（必须由用户继承实现）"""
         self.writeCtaLog(u'%s策略启动' %self.name)
+        super(AtrRsiStrategy,self).onStrat()
         self.putEvent()
 
     #----------------------------------------------------------------------

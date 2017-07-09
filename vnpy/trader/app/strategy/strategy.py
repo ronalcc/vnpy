@@ -4,14 +4,13 @@
 本文件包含了CTA引擎中的策略开发用模板，开发策略时需要继承CtaTemplate类。
 '''
 
-from vnpy.trader.vtConstant import *
-
-from vnpy.trader.app.ctaStrategy.ctaBase import *
-from vnpy.trader.language import *
 from abc import ABCMeta,abstractmethod,abstractproperty
-from Queue import Queue, Empty
-from threading import Thread
+from Queue import Queue
 from vnpy.trader.vtGateway import VtSubscribeReq
+from collections import defaultdict
+from vnpy.trader.vtEvent import *
+
+
 ########################################################################
 class Strategy(object):
     """策略模板"""
@@ -51,22 +50,26 @@ class Strategy(object):
 
 
     # ----------------------------------------------------------------------
-    def __init__(self, strategyEngine, _id):
+    def __init__(self, strategyEngine, strategyInstance):
         #初始化策略实例
 
 
         self.strategyEngine = strategyEngine
-
+        self.instance = strategyInstance
         self.eventQueue = Queue()
-        self.thread = Thread(target=self.run)
-
+        # 处理函数的字典{事件类型：处理函数数组}
+        self.__handlers = defaultdict(list)
         #监听状态
         self.listener_status = 0;
 
         #运行状态
         self.run_status = 0;
+        # # 策略的基本变量，由引擎管理
+        self.inited = False  # 是否进行了初始化
+        self.trading = False  # 是否启动交易，由引擎管理
+        self.pos = 0  # 持仓情况
+        self.onLoadStrategy()
 
-        self.loadStrategy(_id)
 
         # for symbol in symbolList:
         #  contract = self.mainEngine.getContract(symbol)
@@ -82,93 +85,73 @@ class Strategy(object):
         #         if key in setting:
         #             d[key] = setting[key]
 
-    # ----------------------------------------------------------------------
-    def run(self):
-      """行情驱动启动执行线程"""
-      for event in self.eventQueue:
-        if event.type_ in self.strategyEngine.__handlers:
-            # 若存在，则按顺序将事件传递给处理函数执行
-            [handler(event) for handler in self.__handlers[event.type_]]
-
-
-    #------------------------------------------------------------------------
-    # def  getMarketDataType(self):
-    #     if __name__ == '__main__':
-    #         self.strategyEngine.mainEngine.query("strategy","strategyInstance",{"strategyName":self.strategyInstance.strategyInstanceName})
-
     # -----------------------------------------------------------------------
-    def loadStrategy(self,_id):
-        instance = self.strategyEngine.loadStrategy(_id)
-        self._id = _id
+    def onLoadStrategy(self):
+        instance = self.instance
+        self._id = instance._id
         self.strateyName = instance.strategyName
         self.strategyInstanceName = instance.strategyInstanceName
         self.status = instance.status
         self.startDate = instance.startDate
         self.endDate = instance.endDate
         self.market = instance.market
-        self.paramList = instance.paramList
-
-    # -----------------------------------------------------------------------
-    def  startMarketListner(self):
-        # 开始监听本策略的行情并订阅行情数据
-        # 在事件引擎中注册对本策略的监听
-        self.strategyEngine.eventEngine.strategyMarketListener(self)
-
-        # 订阅策略涉及的行情数据
-        self.subscribeMarket(self.market)
+        self.params = instance.params
     #------------------------------------------------------------------------
-    def subscribeMarket(self,market):
-        #订阅策略涉及的行情数据
-        if market['ticks'] is not None:
+    def onInit(self):
+         """初始化策略（必须由用户继承实现）"""
+         self.startMarketListner()
+         self.registerEvent()
+    # # ----------------------------------------------------------------------
+
+    def onStart(self):
+
+        """启动策略实例（必须由用户继承实现）"""
+        self.onRun()
+    # ----------------------------------------------------------------------
+
+    def onRun(self):
+      """行情驱动启动执行线程"""
+      for event in self.eventQueue:
+        if event.type_ in self.strategyEngine.__handlers:
+            # 若存在，则按顺序将事件传递给处理函数执行
+            [handler(event) for handler in self.__handlers[event.type_]]
+
+    # ----------------------------------------------------------------------
+    def registerEvent(self, strategy):
+        """注册事件监听"""
+        self.register(EVENT_TICK,self.onTicks)
+        self.register(EVENT_ORDER,self.onOrder)
+        self.strategyEngine.register(EVENT_TRADE,self.onTrade)
+        self.register(EVENT_POSITION,self.onPosition)
+    #------------------------------------------------------------------------
+    def register(self, type_, handler):
+        """注册事件处理函数监听"""
+        # 尝试获取该事件类型对应的处理函数列表，若无defaultDict会自动创建新的list
+        handlerList = self.__handlers[type_]
+
+        # 若要注册的处理器不在该事件的处理器列表中，则注册该事件
+        if handler not in handlerList:
+            handlerList.append(handler)
+    # -----------------------------------------------------------------------
+
+
+    def startMarketListner(self):
+            # 开始监听本策略的行情并订阅行情数据
+            # 在事件引擎中注册对本策略的监听
+            self.strategyEngine.eventEngine.strategyMarketListener(self)
+
+            # 订阅策略涉及的行情数据
+            self.subscribeMarket(self.market)
+
+    # ------------------------------------------------------------------------
+    def subscribeMarket(self, market):
+            # 订阅策略涉及的行情数据
+            if market['ticks'] is not None:
                 for tick in market['ticks']:
                     req = VtSubscribeReq()
                     req.symbol = tick['symbol']
                     self.mainEngine.subscribe(req, tick['gateWay'])
 
-    # -----------------------------------------------------------------------
-    @abstractmethod
-    def startListner(self):
-          pass
-    #------------------------------------------------------------------------
-
-    @abstractmethod
-    def onInit(self):
-         """初始化策略（必须由用户继承实现）"""
-         pass
-
-    # # ----------------------------------------------------------------------
-
-    def onStart(self):
-         """启动策略实例（必须由用户继承实现）"""
-         self.event_thread.start()
-    #
-    # # ----------------------------------------------------------------------
-    @abstractmethod
-    def onStop(self):
-       """停止策略（必须由用户继承实现）"""
-       pass
-
-    #-----------------------------------------------------------------------
-    @abstractmethod
-    def onDestroy(self):
-        """使策略失效"""
-        pass
-    #-----------------------------------------------------------------------
-    @abstractmethod
-    def onOrder(self,event):
-         """收到发送订单的事件推送"""
-
-    # ----------------------------------------------------------------------
-    @abstractmethod
-    def onTick(self, tick):
-        """收到行情TICK推送（必须由用户继承实现）"""
-        pass
-    # # ----------------------------------------------------------------------
-    @abstractmethod
-    def onOrder(self, order):
-        """收到委托变化推送（必须由用户继承实现）"""
-        pass
-    #
     # # ----------------------------------------------------------------------
     def onTrade(self, trade):
          """收到成交推送（必须由用户继承实现）"""
@@ -180,6 +163,36 @@ class Strategy(object):
          raise NotImplementedError
 
     # # ----------------------------------------------------------------------
+    @abstractmethod
+    def onStop(self):
+             """停止策略（必须由用户继承实现）"""
+             pass
+
+    # -----------------------------------------------------------------------
+    @abstractmethod
+    def onDestroy(self):
+             """使策略失效"""
+             pass
+
+    # -----------------------------------------------------------------------
+    @abstractmethod
+    def onOrder(self, event):
+             """收到发送订单的事件推送"""
+
+    # ----------------------------------------------------------------------
+    @abstractmethod
+    def onTick(self, tick):
+        """收到行情TICK推送（必须由用户继承实现）"""
+        pass
+
+    # # ----------------------------------------------------------------------
+    @abstractmethod
+    def onOrder(self, order):
+             """收到委托变化推送（必须由用户继承实现）"""
+             pass
+
+
+             # # ----------------------------------------------------------------------
     # def buy(self, price, volume, stop=False):
     #     """买开"""
     #     return self.sendOrder(CTAORDER_BUY, price, volume, stop)

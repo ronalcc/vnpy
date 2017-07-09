@@ -16,24 +16,32 @@ class CtaStrategy(Strategy):
 
 
     #----------------------------------------------------------------------
-    def __init__(self, ctaEngine, _id):
+    def __init__(self, strategyEngine, strategyInstance):
         """Constructor"""
-        super(CtaStrategy,self).__init__(ctaEngine,_id)
+        super(CtaStrategy,self).__init__(strategyEngine,strategyInstance)
 
     
-    #----------------------------------------------------------------------
+
+    # ---------------------------------------------------------------------
+    def onLoadStrategy(self):
+      #从数据库中加载策略实例
+      super(CtaStrategy,self).onLoadStrategy()
+
+    # ----------------------------------------------------------------------
     def onInit(self):
-        """初始化策略（必须由用户继承实现）"""
-
-    
+      """初始化策略（必须由用户继承实现）"""
+      super(CtaStrategy,self).onInit()
     #----------------------------------------------------------------------
     def onStart(self):
         """启动策略（必须由用户继承实现）"""
+        pass
 
     #----------------------------------------------------------------------
     def onStop(self):
         """停止策略（必须由用户继承实现）"""
         raise NotImplementedError
+
+
 
     #----------------------------------------------------------------------
     def onTick(self, tick):

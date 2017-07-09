@@ -29,11 +29,8 @@ from vnpy.trader.vtEvent import *
 from vnpy.trader.vtObject import VtTickData, VtBarData
 from vnpy.trader.vtGateway import VtSubscribeReq, VtOrderReq, VtCancelOrderReq, VtLogData
 from vnpy.trader.vtFunction import todayDate
-
-from vnpy.trader.app.ctaStrategy.strategy import STRATEGY_CLASS
-from vnpy.trader.app.strategy.strategy import *
-from collections import defaultdict
-from vnpy.trader.language import text
+from threading import Thread
+from abc import ABCMeta,abstractmethod,abstractproperty
 
 
 ########################################################################
@@ -81,25 +78,181 @@ class StrategyEngine():
         # 引擎类型为实盘
         self.engineType = ENGINETYPE_TRADING
 
-        #处理函数的字典{事件类型：处理函数数组}
-        self.__handlers = defaultdict(list)
 
 
-        # 注册事件监听
-        self.registerEvent()
+        #策略引擎的线程数量
+        self.strategyThreadNum = 0;
 
-    # -------------------------------------------------------------------------------------------------------
-    def sendOrder(self,req,strategyInstance):
-           contract  = self.mainEngine.getContract(req.symbol)
-           vtOrderID = self.mainEngine.sendOrder(req, contract.gatewayName)  # 发单
-           self.orderStrategyInstanceDict[vtOrderID] = strategyInstance  # 保存vtOrderID和策略的映射关系
+    #------------------------------------------------------------------------
+    def getThread(self,method):
+        #获取线程
+        if self.strategyThreadNum == 0:
+              return Thread(target=method)
 
-           self.writeCtaLog(u'策略%s发送委托，%s，%s，%s@%s'
-                             % (strategyInstance.strategyName, req.symbol, req.direction, req.volume, req.price))
 
-           return vtOrderID
 
-     # def sendOrder(self, vtSymbol, orderType, price, volume, strategy):
+    # ----------------------------------------------------------------------------
+    def loadStrategy(self, _id):
+        #防止策略重复载入
+        if _id in self.strategyDict:
+            self.writeCtaLog(u'策略实例已载入：%s' % name)
+            strategy = self.strategyDict[_id]
+        else:
+            # 创建策略实例
+            strategyMetadata = self.mainEngine.dbQuery("strategy", "strategyInstance", {"_id": _id})
+            strategyClass = STRATEGY_CLASS.get(strategyMetadata['strategyName'], None)
+            strategy = strategyClass(self, strategyMetadata)
+            self.callStrategyFunc(strategy, strategy.onLoadStrategy)
+
+            self.strategyDict[_id] = strategy
+        return strategy
+
+    # ---------------------------------------------------------------------
+
+    def startStrategy(self, _id):
+        """启动策略"""
+        if _id in self.strategyDict:
+            strategy = self.strategyDict[_id]
+
+            if strategy.inited and not strategy.trading:
+                strategy.trading = True
+                thread = self.getThread(self.callStrategyFunc(strategy, strategy.onStart))
+                thread.start()
+        else:
+            self.writeCtaLog(u'策略实例不存在：%s' % _id)
+
+    # ----------------------------------------------------------------------
+    def initStrategy(self, _id):
+            """初始化策略"""
+            if name in self.strategyDict:
+                strategy = self.strategyDict[_id]
+
+                if not strategy.inited:
+                    strategy.inited = True
+                    self.callStrategyFunc(strategy, strategy.onInit)
+                else:
+                    self.writeCtaLog(u'请勿重复初始化策略实例：%s' % name)
+            else:
+                self.writeCtaLog(u'策略实例不存在：%s' % name)
+
+    # ----------------------------------------------------------------------
+    def stopStrategy(self, name):
+        """停止策略"""
+        if name in self.strategyDict:
+            strategy = self.strategyDict[name]
+
+            if strategy.trading:
+                strategy.trading = False
+                self.callStrategyFunc(strategy, strategy.onStop)
+
+                # 对该策略发出的所有限价单进行撤单
+                for vtOrderID, s in self.orderStrategyDict.items():
+                    if s is strategy:
+                        self.cancelOrder(vtOrderID)
+
+                # 对该策略发出的所有本地停止单撤单
+                for stopOrderID, so in self.workingStopOrderDict.items():
+                    if so.strategy is strategy:
+                        self.cancelStopOrder(stopOrderID)
+        else:
+            self.writeCtaLog(u'策略实例不存在：%s' % name)
+
+            # ----------------------------------------------------------------------
+
+    def saveSetting(self):
+        """保存策略配置"""
+        with open(self.settingFileName, 'w') as f:
+            l = []
+
+            for strategy in self.strategyDict.values():
+                setting = {}
+                for param in strategy.paramList:
+                    setting[param] = strategy.__getattribute__(param)
+                l.append(setting)
+
+            jsonL = json.dumps(l, indent=4)
+            f.write(jsonL)
+
+   # ----------------------------------------------------------------------
+
+    def putStrategyEvent(self, name):
+        """触发策略状态变化事件（通常用于通知GUI更新）"""
+        event = Event(EVENT_CTA_STRATEGY + name)
+        self.eventEngine.put(event)
+
+    # ----------------------------------------------------------------------
+    def callStrategyFunc(self, strategy, func, params=None):
+        """调用策略的函数，若触发异常则捕捉"""
+        try:
+            if params:
+                func(params)
+            else:
+                func()
+        except Exception:
+            # 停止策略，修改状态为未初始化
+            strategy.trading = False
+            strategy.inited = False
+
+            # 发出日志
+            content = '\n'.join([u'策略%s触发异常已停止' % strategy.name,
+                                 traceback.format_exc()])
+            self.writeCtaLog(content)
+
+    # ----------------------------------------------------------------------
+    def savePosition(self):
+        """保存所有策略的持仓情况到数据库"""
+        for strategy in self.strategyDict.values():
+            flt = {'name': strategy.name,
+                   'vtSymbol': strategy.vtSymbol}
+
+            d = {'name': strategy.name,
+                 'vtSymbol': strategy.vtSymbol,
+                 'pos': strategy.pos}
+
+            self.mainEngine.dbUpdate(POSITION_DB_NAME, strategy.className,
+                                     d, flt, True)
+
+            content = '策略%s持仓保存成功' % strategy.name
+            self.writeCtaLog(content)
+
+    # ----------------------------------------------------------------------
+    def loadPosition(self):
+        """从数据库载入策略的持仓情况"""
+        for strategy in self.strategyDict.values():
+            flt = {'name': strategy.name,
+                   'vtSymbol': strategy.vtSymbol}
+            posData = self.mainEngine.dbQuery(POSITION_DB_NAME, strategy.className, flt)
+
+            for d in posData:
+                strategy.pos = d['pos']
+
+    # ----------------------------------------------------------------------
+    def roundToPriceTick(self, priceTick, price):
+        """取整价格到合约最小价格变动"""
+        if not priceTick:
+            return price
+
+        newPrice = round(price / priceTick, 0) * priceTick
+        return newPrice
+
+        # ----------------------------------------------------------------------
+
+    def stop(self):
+        """停止"""
+        pass
+        # -------------------------------------------------------------------------------------------------------
+
+    def sendOrder(self, req, strategyInstance):
+        contract = self.mainEngine.getContract(req.symbol)
+        vtOrderID = self.mainEngine.sendOrder(req, contract.gatewayName)  # 发单
+        self.orderStrategyInstanceDict[vtOrderID] = strategyInstance  # 保存vtOrderID和策略的映射关系
+
+        self.writeCtaLog(u'策略%s发送委托，%s，%s，%s@%s'
+                         % (strategyInstance.strategyName, req.symbol, req.direction, req.volume, req.price))
+
+        return vtOrderID
+
+        # def sendOrder(self, vtSymbol, orderType, price, volume, strategy):
 
         # contract = self.mainEngine.getContract(vtSymbol)
         #
@@ -170,7 +323,8 @@ class StrategyEngine():
         #
         # return vtOrderID
 
-    # ----------------------------------------------------------------------
+        # ----------------------------------------------------------------------
+
     def cancelOrder(self, vtOrderID):
         """撤单"""
         # 查询报单对象
@@ -178,28 +332,29 @@ class StrategyEngine():
 
         # 如果查询成功
         if order:
-        # 检查是否报单还有效，只有有效时才发出撤单指令
-             orderFinished = (order.status == constant.STATUS_ALLTRADED or order.status == constant.STATUS_CANCELLED)
-             if not orderFinished:
-                 req = VtCancelOrderReq()
-                 req.symbol = order.symbol
-                 req.exchange = order.exchange
-                 req.frontID = order.frontID
-                 req.sessionID = order.sessionID
-                 req.orderID = order.orderID
-                 self.mainEngine.cancelOrder(req, order.gatewayName)
+            # 检查是否报单还有效，只有有效时才发出撤单指令
+            orderFinished = (order.status == constant.STATUS_ALLTRADED or order.status == constant.STATUS_CANCELLED)
+            if not orderFinished:
+                req = VtCancelOrderReq()
+                req.symbol = order.symbol
+                req.exchange = order.exchange
+                req.frontID = order.frontID
+                req.sessionID = order.sessionID
+                req.orderID = order.orderID
+                self.mainEngine.cancelOrder(req, order.gatewayName)
 
-                # ----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
 
-    def sendStopOrder(self, startegyEngine,stopOrder):
+    def sendStopOrder(self, startegyEngine, stopOrder):
         """发停止单（本地实现）"""
         startegyEngine.stopOrderDict[stopOrder.stopOrderID] = stopOrder
         startegyEngine.workingStopOrderDict[stopOrder.stopOrderID] = stopOrder
         #
         # return stopOrderID
 
-    # ----------------------------------------------------------------------
-    def cancelStopOrder(self, strategyEngine,stopOrderID):
+        # ----------------------------------------------------------------------
+
+    def cancelStopOrder(self, strategyEngine, stopOrderID):
         """撤销停止单"""
         # 检查停止单是否存在
         if stopOrderID in strategyEngine.workingStopOrderDict:
@@ -208,6 +363,7 @@ class StrategyEngine():
             del strategyEngine.workingStopOrderDict[stopOrderID]
 
     # ----------------------------------------------------------------------
+
     def processStopOrder(self, ticks):
         """收到行情后处理本地停止单（检查是否要立即发出）"""
         # vtSymbol = tick.vtSymbol
@@ -231,38 +387,9 @@ class StrategyEngine():
         #                 self.sendOrder(so.vtSymbol, so.orderType, price, so.volume, so.strategy)
         #                 del self.workingStopOrderDict[so.stopOrderID]
 
-    # ----------------------------------------------------------------------
-    def processTicksEvent(self, event,strategyInstance):
-        pass
+        # ----------------------------------------------------------------------
 
-    # ----------------------------------------------------------------------
-    def processTickEvent(self, event,strategyInstance):
-        """处理行情推送"""
-        ticks = event.dict_['data']
-        #  收到tick行情后，先处理本地停止单（检查是否要立即发出）
-        self.processStopOrder(ticks)
-        #
-        # # 推送tick到对应的策略实例进行处理
-        # if tick.vtSymbol in self.tickStrategyDict:
-        #     # 添加datetime字段
-        #     if not tick.datetime:
-        #         tick.datetime = datetime.strptime(' '.join([tick.date, tick.time]), '%Y%m%d %H:%M:%S.%f')
-        #
-        #     # 逐个推送到策略实例中
-        #     l = self.tickStrategyDict[tick.vtSymbol]
-        #     for strategy in l:
-        self.callStrategyFunc(strategyInstance, strategyInstance.onTick, ticks)
 
-    # ----------------------------------------------------------------------
-    def processOrderEvent(self, event,strategyInstance):
-        """处理委托推送"""
-        order = event.dict_['data']
-        self.callStrategyFunc(strategyInstance,strategyInstance.onOrder,order)
-        # if order.vtOrderID in self.orderStrategyDict:
-        #     strategy = self.orderStrategyDict[order.vtOrderID]
-        #     self.callStrategyFunc(strategy, strategy.onOrder, order)
-
-    # ----------------------------------------------------------------------
     def processTradeEvent(self, event):
         """处理成交推送"""
         # trade = event.dict_['data']
@@ -293,7 +420,7 @@ class StrategyEngine():
         #         self.posBufferDict[trade.vtSymbol] = posBuffer
         #     posBuffer.updateTradeData(trade)
 
-            # ----------------------------------------------------------------------
+        # ----------------------------------------------------------------------
 
     def processPositionEvent(self, event):
         """处理持仓推送"""
@@ -308,24 +435,7 @@ class StrategyEngine():
         #         self.posBufferDict[pos.vtSymbol] = posBuffer
         #     posBuffer.updatePositionData(pos)
 
-    # ----------------------------------------------------------------------
-    def registerEvent(self):
-        """注册事件监听"""
-        self.register(EVENT_TICKS, self.processTicksEvent)
-        self.register(EVENT_ORDER, self.processOrderEvent)
-        self.register(EVENT_TRADE, self.processTradeEvent)
-        self.register(EVENT_POSITION, self.processPositionEvent)
-
-    #------------------------------------------------------------------------
-    def register(self, type_, handler):
-        """注册事件处理函数监听"""
-        # 尝试获取该事件类型对应的处理函数列表，若无defaultDict会自动创建新的list
-        handlerList = self.__handlers[type_]
-
-        # 若要注册的处理器不在该事件的处理器列表中，则注册该事件
-        if handler not in handlerList:
-            handlerList.append(handler)
-
+        # ----------------------------------------------------------------------
     # ----------------------------------------------------------------------
     def insertData(self, dbName, collectionName, data):
         """插入数据到数据库（这里的data可以是VtTickData或者VtBarData）"""
@@ -372,241 +482,6 @@ class StrategyEngine():
         self.eventEngine.put(event)
 
         # ----------------------------------------------------------------------
-
-    def loadStrategy(self, _id):
-        strategy = self.mainEngine.dbQuery("strategy", "strategyInstance",{"_id":_id})
-        return strategy
-        # for strategy in l:
-        #     try:
-        #         name = strategy['strategyName']
-        #         className = strategy['strategyName']
-        #
-        #     except Exception, e:
-        #         self.writeCtaLog(u'载入策略出错：%s' % e)
-        #         return
-        #
-        #         # 获取策略类
-        #     strategyClass = STRATEGY_CLASS.get(className, None)
-        #     if not strategyClass:
-        #         self.writeCtaLog(u'找不到策略类：%s' % className)
-        #         return
-        #
-        #     # 防止策略重名
-        #     if name in self.strategyDict:
-        #         self.writeCtaLog(u'策略实例重名：%s' % name)
-        #     else:
-        #         # 创建策略实例
-        #         strategy = strategyClass(self, strategy)
-        #         self.strategyDict[name] = strategy
-
-
-                # # 保存Tick映射关系
-                # if strategy.vtSymbol in self.tickStrategyDict:
-                #     l = self.tickStrategyDict[strategy.vtSymbol]
-                # else:
-                #     l = []
-                #     self.tickStrategyDict[strategy.vtSymbol] = l
-                # l.append(strategy)
-                #
-                # # 订阅合约
-                # contract = self.mainEngine.getContract(strategy.vtSymbol)
-                # if contract:
-                #     req = VtSubscribeReq()
-                #     req.symbol = contract.symbol
-                #     req.exchange = contract.exchange
-                #
-                #     # 对于IB接口订阅行情时所需的货币和产品类型，从策略属性中获取
-                #     req.currency = strategy.currency
-                #     req.productClass = strategy.productClass
-                #
-                #     self.mainEngine.subscribe(req, contract.gatewayName)
-                # else:
-                #     self.writeCtaLog(u'%s的交易合约%s无法找到' %(name, strategy.vtSymbol))
-
-    # ----------------------------------------------------------------------
-    def initStrategy(self, name):
-        """初始化策略"""
-        if name in self.strategyDict:
-            strategy = self.strategyDict[name]
-
-            if not strategy.inited:
-                strategy.inited = True
-                self.callStrategyFunc(strategy, strategy.onInit)
-            else:
-                self.writeCtaLog(u'请勿重复初始化策略实例：%s' % name)
-        else:
-            self.writeCtaLog(u'策略实例不存在：%s' % name)
-
-            # ---------------------------------------------------------------------
-
-    def startStrategy(self, name):
-        """启动策略"""
-        if name in self.strategyDict:
-            strategy = self.strategyDict[name]
-
-            if strategy.inited and not strategy.trading:
-                strategy.trading = True
-                self.callStrategyFunc(strategy, strategy.onStart)
-        else:
-            self.writeCtaLog(u'策略实例不存在：%s' % name)
-
-    # ----------------------------------------------------------------------
-    def stopStrategy(self, name):
-        """停止策略"""
-        if name in self.strategyDict:
-            strategy = self.strategyDict[name]
-
-            if strategy.trading:
-                strategy.trading = False
-                self.callStrategyFunc(strategy, strategy.onStop)
-
-                # 对该策略发出的所有限价单进行撤单
-                for vtOrderID, s in self.orderStrategyDict.items():
-                    if s is strategy:
-                        self.cancelOrder(vtOrderID)
-
-                # 对该策略发出的所有本地停止单撤单
-                for stopOrderID, so in self.workingStopOrderDict.items():
-                    if so.strategy is strategy:
-                        self.cancelStopOrder(stopOrderID)
-        else:
-            self.writeCtaLog(u'策略实例不存在：%s' % name)
-
-            # ----------------------------------------------------------------------
-
-    def saveSetting(self):
-        """保存策略配置"""
-        with open(self.settingFileName, 'w') as f:
-            l = []
-
-            for strategy in self.strategyDict.values():
-                setting = {}
-                for param in strategy.paramList:
-                    setting[param] = strategy.__getattribute__(param)
-                l.append(setting)
-
-            jsonL = json.dumps(l, indent=4)
-            f.write(jsonL)
-
-    # ----------------------------------------------------------------------
-    """
-    def loadSetting(self):
-        with open(self.settingFileName) as f:
-            l = json.load(f)
-
-            for setting in l:
-                self.loadStrategy(setting)
-
-        self.loadPosition()
-    """
-
-    # ------------------数据库读取策略----------------------------------------------------
-    def querySetting(self):
-        findDict = {"strategyType": "CTA"}
-        l = self.mainEngine.dbQuery('strategy', 'strategyClass', findDict)
-
-        return l
-
-    # ----------------------------------------------------------------------
-    def getStrategyVar(self, name):
-        """获取策略当前的变量字典"""
-        if name in self.strategyDict:
-            strategy = self.strategyDict[name]
-            varDict = OrderedDict()
-
-            for key in strategy.varList:
-                varDict[key] = strategy.__getattribute__(key)
-
-            return varDict
-        else:
-            self.writeCtaLog(u'策略实例不存在：' + name)
-            return None
-
-    # --------------------------------------deprecated--------------------------------
-    def getStrategyParam(self, name):
-        """获取策略的参数字典"""
-        if name in self.strategyDict:
-            strategy = self.strategyDict[name]
-            paramDict = OrderedDict()
-
-            for key in strategy.paramList:
-                paramDict[key] = strategy.__getattribute__(key)
-
-            return paramDict
-        else:
-            self.writeCtaLog(u'策略实例不存在：' + name)
-            return None
-
-
-            # ----------------------------------------------------------------------
-
-    def putStrategyEvent(self, name):
-        """触发策略状态变化事件（通常用于通知GUI更新）"""
-        event = Event(EVENT_CTA_STRATEGY + name)
-        self.eventEngine.put(event)
-
-    # ----------------------------------------------------------------------
-    def callStrategyFunc(self, strategy, func, params=None):
-        """调用策略的函数，若触发异常则捕捉"""
-        try:
-            if params:
-                func(params)
-            else:
-                func()
-        except Exception:
-            # 停止策略，修改状态为未初始化
-            strategy.trading = False
-            strategy.inited = False
-
-            # 发出日志
-            content = '\n'.join([u'策略%s触发异常已停止' % strategy.name,
-                                 traceback.format_exc()])
-            self.writeCtaLog(content)
-
-    # ----------------------------------------------------------------------
-    def savePosition(self):
-        """保存所有策略的持仓情况到数据库"""
-        for strategy in self.strategyDict.values():
-            flt = {'name': strategy.name,
-                   'vtSymbol': strategy.vtSymbol}
-
-            d = {'name': strategy.name,
-                 'vtSymbol': strategy.vtSymbol,
-                 'pos': strategy.pos}
-
-            self.mainEngine.dbUpdate(POSITION_DB_NAME, strategy.className,
-                                     d, flt, True)
-
-            content = '策略%s持仓保存成功' % strategy.name
-            self.writeCtaLog(content)
-
-    # ----------------------------------------------------------------------
-    def loadPosition(self):
-        """从数据库载入策略的持仓情况"""
-        for strategy in self.strategyDict.values():
-            flt = {'name': strategy.name,
-                   'vtSymbol': strategy.vtSymbol}
-            posData = self.mainEngine.dbQuery(POSITION_DB_NAME, strategy.className, flt)
-
-            for d in posData:
-                strategy.pos = d['pos']
-
-    # ----------------------------------------------------------------------
-    def roundToPriceTick(self, priceTick, price):
-        """取整价格到合约最小价格变动"""
-        if not priceTick:
-            return price
-
-        newPrice = round(price / priceTick, 0) * priceTick
-        return newPrice
-
-        # ----------------------------------------------------------------------
-
-    def stop(self):
-        """停止"""
-        pass
-
-
 ########################################################################
 class PositionBuffer(object):
     """持仓缓存信息（本地维护的持仓数据）"""
