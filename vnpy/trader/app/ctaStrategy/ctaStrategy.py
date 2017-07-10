@@ -147,7 +147,7 @@ class CtaStrategy(Strategy):
     
 
 ########################################################################
-class TargetPosTemplate(CtaTemplate):
+class TargetPosTemplate(CtaStrategy):
     """
     允许直接通过修改目标持仓来实现交易的策略模板
     
