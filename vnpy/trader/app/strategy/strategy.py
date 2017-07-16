@@ -9,6 +9,7 @@ from Queue import Queue
 from vnpy.trader.vtGateway import VtSubscribeReq
 from collections import defaultdict
 from vnpy.trader.vtEvent import *
+from threading import Thread
 
 
 ########################################################################
@@ -56,7 +57,15 @@ class Strategy(object):
 
         self.strategyEngine = strategyEngine
         self.instance = strategyInstance
-        self.eventQueue = Queue()
+
+        #行情事件队列
+        self.marketEventQueue = Queue()
+        self.marketThread = Thread(target="marketListner_run")
+        #交易事件队列
+        self.tradeEventQueue = Queue()
+        self.tradeThread = Thread(target="tradeListner_run")
+
+
         # 处理函数的字典{事件类型：处理函数数组}
         self.__handlers = defaultdict(list)
         #监听状态
@@ -106,23 +115,34 @@ class Strategy(object):
     def onStart(self):
 
         """启动策略实例（必须由用户继承实现）"""
-        self.onRun()
+        self.marketThread.start()
+        self.tradeThread.start()
     # ----------------------------------------------------------------------
 
-    def onRun(self):
+    def marketListner_run(self):
       """行情驱动启动执行线程"""
-      for event in self.eventQueue:
-        if event.type_ in self.strategyEngine.__handlers:
+      for event in self.marketEventQueue:
+        if event.type_ in self.__handlers:
             # 若存在，则按顺序将事件传递给处理函数执行
             [handler(event) for handler in self.__handlers[event.type_]]
 
     # ----------------------------------------------------------------------
+
+    def tradeListner_run(self):
+            """交易驱动启动执行线程"""
+            for event in self.tradeEventQueue:
+                if event.type_ in self.__handlers:
+                    # 若存在，则按顺序将事件传递给处理函数执行
+                    [handler(event) for handler in self.__handlers[event.type_]]
+
+
+    # ----------------------------------------------------------------------
     def registerEvent(self, strategy):
         """注册事件监听"""
-        self.register(EVENT_TICK,self.onTicks)
-        self.register(EVENT_ORDER,self.onOrder)
-        self.strategyEngine.register(EVENT_TRADE,self.onTrade)
-        self.register(EVENT_POSITION,self.onPosition)
+        self.register(EVENT_TICK,self.processTicks)
+        self.register(EVENT_ORDER,self.processOrder)
+        self.register(EVENT_TRADE,self.processTrade)
+        self.register(EVENT_POSITION,self.processPosition)
     #------------------------------------------------------------------------
     def register(self, type_, handler):
         """注册事件处理函数监听"""
@@ -153,14 +173,28 @@ class Strategy(object):
                     self.mainEngine.subscribe(req, tick['gateWay'])
 
     # # ----------------------------------------------------------------------
-    def onTrade(self, trade):
-         """收到成交推送（必须由用户继承实现）"""
-         raise NotImplementedError
+    @abstractmethod
+    def processTicks(self):
+        """收到组合行情推送后的回调方法"""
+        pass
 
     # # ----------------------------------------------------------------------
-    def onBar(self, bar):
-         """收到Bar推送（必须由用户继承实现）"""
-         raise NotImplementedError
+    @abstractmethod
+    def processOrder(self):
+        """收到订单回报后的回调方法"""
+        pass
+    # ----------------------------------------------------------------------
+
+    @abstractmethod
+    def processTrade(self):
+        """收到订成交回报后的回调方法"""
+        pass
+    # ----------------------------------------------------------------------
+
+    @abstractmethod
+    def processPosition(self):
+        """收到持仓回报后的回调方法"""
+        pass
 
     # # ----------------------------------------------------------------------
     @abstractmethod
@@ -175,21 +209,7 @@ class Strategy(object):
              pass
 
     # -----------------------------------------------------------------------
-    @abstractmethod
-    def onOrder(self, event):
-             """收到发送订单的事件推送"""
 
-    # ----------------------------------------------------------------------
-    @abstractmethod
-    def onTick(self, tick):
-        """收到行情TICK推送（必须由用户继承实现）"""
-        pass
-
-    # # ----------------------------------------------------------------------
-    @abstractmethod
-    def onOrder(self, order):
-             """收到委托变化推送（必须由用户继承实现）"""
-             pass
 
 
              # # ----------------------------------------------------------------------

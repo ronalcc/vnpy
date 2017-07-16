@@ -17,22 +17,6 @@
 '''
 
 from __future__ import division
-
-import json
-import os
-import traceback
-from collections import OrderedDict
-from datetime import datetime, timedelta
-
-from vnpy.event import Event
-from vnpy.trader.vtEvent import *
-from vnpy.trader.vtConstant import *
-from vnpy.trader.vtObject import VtTickData, VtBarData
-from vnpy.trader.vtGateway import VtSubscribeReq, VtOrderReq, VtCancelOrderReq, VtLogData
-from vnpy.trader.vtFunction import todayDate
-
-from vnpy.trader.app.ctaStrategy.ctaBase import *
-from vnpy.trader.app.ctaStrategy.strategy import STRATEGY_CLASS
 from vnpy.trader.app.ctaStrategy.ctaTemplate import *
 from vnpy.trader.app.strategy.strategyEngine import *
 
@@ -98,10 +82,8 @@ class CtaEngine(StrategyEngine):
         pass
 
     # ----------------------------------------------------------------------
-    def sendOrder(self, symbol, orderType, price, volume, strategyInstance):
-            """发单"""
-            contract = self.mainEngine.getContract(symbol)
-
+    def buildOrder(self, symbol, orderType, price, volume,contract):
+            #生成委托单
             req = VtOrderReq()
             req.symbol = contract.symbol
             req.exchange = contract.exchange
@@ -161,26 +143,21 @@ class CtaEngine(StrategyEngine):
                     else:
                         req.offset = constant.OFFSET_CLOSE
 
-            return super.sendOrder()
+            return req
+
 
     # ----------------------------------------------------------------------
-    def cancelOrder(self, vtOrderID):
-            """撤单"""
-            # 查询报单对象
-            super.cancelOrder(self, vtOrderID)
-
-    # ----------------------------------------------------------------------
-    def sendStopOrder(self, vtSymbol, orderType, price, volume, strategyInstance):
-            """发停止单（本地实现）"""
+    def buildStopOrder(self, symbol, orderType, price, volume):
+            """生成停止单（本地实现）"""
             self.stopOrderCount += 1
             stopOrderID = STOPORDERPREFIX + str(self.stopOrderCount)
 
             so = StopOrder()
-            so.vtSymbol = vtSymbol
+            so.vtSymbol = symbol
             so.orderType = orderType
             so.price = price
             so.volume = volume
-            so.strategy = strategyInstance
+            #so.strategy = strategyInstance
             so.stopOrderID = stopOrderID
             so.status = STOPORDER_WAITING
 
@@ -196,16 +173,19 @@ class CtaEngine(StrategyEngine):
             elif orderType == CTAORDER_COVER:
                 so.direction = constant.DIRECTION_LONG
                 so.offset = constant.OFFSET_CLOSE
-            super.sendStopOrder(self, so)
-            return stopOrderID
 
-    # ----------------------------------------------------------------------
-    def cancelStopOrder(self, stopOrderID):
-            """撤销停止单"""
-            # 检查停止单是否存在
-            super.cancelStopOrder(self, stopOrderID)
+            return so
 
-        
+
+    def buildCancelOrder(self, order):
+                """生成撤单"""
+                req = VtCancelOrderReq()
+                req.symbol = order.symbol
+                req.exchange = order.exchange
+                req.frontID = order.frontID
+                req.sessionID = order.sessionID
+                req.orderID = order.orderID
+                return req
         
     
     
