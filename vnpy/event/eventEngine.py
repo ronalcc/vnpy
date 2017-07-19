@@ -70,8 +70,8 @@ class EventEngine(object):
         self.__strategy_eventQueue_dict = {}
 
 
-        #一个线程池数组，生成多个线程来分组处理注册的策略实例
-        self.__sorter_threads = []
+        #一个线程池数组，生成多个线程来分组处理注册的策略实例的tick数据
+        self.__tick_sorter_threads = []
         self.__sorter_size = 3
         #一个策略实例分组的数组
         self.__sorter_group_list = []
@@ -99,7 +99,7 @@ class EventEngine(object):
 
         for i in range(self.__sorter_size):
              self.__tick_sorter_threads.append(Thread(target=self.sorter_run))
-             self.__strategy_group_list.append(list())
+             #self.__strategy_group_list.append(list())
     #----------------------------------------------------------------------
     def __run(self):
         #引擎运行
@@ -157,9 +157,7 @@ class EventEngine(object):
         """
         # 将引擎设为启动
         self.__active = True
-        
-        # 启动事件处理线程
-        self.__thread.start()
+
         
         # 启动计时器，计时器事件间隔默认设定为1秒
         if timer:
@@ -173,9 +171,7 @@ class EventEngine(object):
         
         # 停止计时器
         self.__timer.stop()
-        
-        # 等待事件处理线程退出
-        self.__thread.join()
+
             
     #----------------------------------------------------------------------
     def register(self, type_, handler):

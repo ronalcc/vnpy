@@ -227,7 +227,8 @@ class CtpMdApi(MdApi):
     def __init__(self, gateway):
         """Constructor"""
         super(CtpMdApi, self).__init__()
-        
+        print '-----init-----'
+
         self.gateway = gateway                  # gateway对象
         self.gatewayName = gateway.gatewayName  # gateway对象名称
         
@@ -247,7 +248,7 @@ class CtpMdApi(MdApi):
     def onFrontConnected(self):
         """服务器连接"""
         self.connectionStatus = True
-        
+        print '---market connect---'
         self.writeLog(text.DATA_SERVER_CONNECTED)
         
         self.login()
@@ -480,7 +481,7 @@ class CtpTdApi(TdApi):
     def onFrontConnected(self):
         """服务器连接"""
         self.connectionStatus = True
-    
+        print '---trade connect---'
         self.writeLog(text.TRADING_SERVER_CONNECTED)
         
         if self.requireAuthentication:

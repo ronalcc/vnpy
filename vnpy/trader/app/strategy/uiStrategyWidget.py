@@ -33,7 +33,7 @@ class ValueMonitor(QtWidgets.QTableWidget):
     # ----------------------------------------------------------------------
     def initUi(self):
         """初始化界面"""
-        # self.setRowCount(1)
+        self.setRowCount(1)
         self.verticalHeader().setVisible(False)
         self.setEditTriggers(self.NoEditTriggers)
         self.setMaximumHeight(self.sizeHint().height())
@@ -51,17 +51,14 @@ class StrategyManager(QtWidgets.QGroupBox):
     signal = QtCore.Signal(type(Event()))
 
     # ----------------------------------------------------------------------
-    def __init__(self, strategyEngine, eventEngine, name, parent=None):
+    def __init__(self,name, parent=None):
         """Constructor"""
         super(StrategyManager, self).__init__(parent)
-
-        self.strategyEngine = strategyEngine
-        self.eventEngine = eventEngine
         self.name = name
 
         self.initUi()
-        self.updateMonitor()
-        self.registerEvent()
+        # self.updateMonitor()
+        # self.registerEvent()
 
     # ----------------------------------------------------------------------
     def initUi(self):
@@ -103,15 +100,15 @@ class StrategyManager(QtWidgets.QGroupBox):
         self.setLayout(vbox)
 
     # ----------------------------------------------------------------------
-    def updateMonitor(self, event=None):
-        """显示最新策略列表"""
-        self.strategyTable.updateData(self.strategyEngine.querySetting())
+    # def updateMonitor(self, event=None):
+    #     """显示最新策略列表"""
+    #     self.strategyTable.updateData(self.strategyEngine.querySetting())
 
     # ----------------------------------------------------------------------
-    def registerEvent(self):
-        """注册事件监听"""
-        self.signal.connect(self.updateMonitor)
-        self.eventEngine.register(EVENT_STRATEGY + self.name, self.signal.emit)
+    # def registerEvent(self):
+    #     """注册事件监听"""
+    #     self.signal.connect(self.updateMonitor)
+    #     self.eventEngine.register(EVENT_STRATEGY + self.name, self.signal.emit)
 
     # # ----------------------------------------------------------------------
     # def init(self):
@@ -168,6 +165,7 @@ class EngineManager(QtWidgets.QWidget):
         # 滚动区域，放置strategyManager
         self.scrollArea = QtWidgets.QScrollArea()
         self.scrollArea.setWidgetResizable(True)
+        self.strategyManager = StrategyManager()
 
         # 组件的日志监控
         self.logMonitor = QtWidgets.QTextEdit()
@@ -186,9 +184,8 @@ class EngineManager(QtWidgets.QWidget):
         vbox = QtWidgets.QVBoxLayout()
         # vbox.addLayout(hbox2)
         vbox.addWidget(self.scrollArea)
-        vbox.addWidget(self.ogMonitor)
+        vbox.addWidget(self.logMonitor)
         self.setLayout(vbox)
-        self.load()
 
     #-----------------------------------------------------------------------
     def load(self):
@@ -242,8 +239,9 @@ class EngineManager(QtWidgets.QWidget):
     # ----------------------------------------------------------------------
     def registerEvent(self):
         """注册事件监听"""
-        self.signal.connect(self.updateaLog)
-        self.eventEngine.register(EVENT_LOG, self.signal.emit)
+        pass
+        #self.signal.connect(self.updateaLog)
+        #self.eventEngine.register(EVENT_LOG, self.signal.emit)
 
     # ----------------------------------------------------------------------
     def closeEvent(self, event):

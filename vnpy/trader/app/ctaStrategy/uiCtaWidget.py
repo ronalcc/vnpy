@@ -76,9 +76,9 @@ class CtaStrategyManager(StrategyManager):
 
     
     #----------------------------------------------------------------------
-    def init(self):
-        """初始化策略"""
-        self.ctaEngine.initStrategy(self.name)
+    # def init(self):
+    #     """初始化策略"""
+    #     self.ctaEngine.initStrategy(self.name)
     
     #----------------------------------------------------------------------
     def start(self):
@@ -119,13 +119,6 @@ class CtaEngineManager(EngineManager):
         """全部停止"""
         for name in self.ctaEngine.strategyDict.keys():
             self.ctaEngine.stopStrategy(name)
-            
-    #----------------------------------------------------------------------
-    def load(self):
-            self.ctaEngine.loadStrategy(self.ctaEngine.querySetting())
-            self.initStrategyManager()
-            self.strategyLoaded = True
-            self.ctaEngine.writeCtaLog(text.STRATEGY_LOADED)
         
 
         

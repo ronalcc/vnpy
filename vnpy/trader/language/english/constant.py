@@ -97,3 +97,16 @@ GATEWAYTYPE_FUTURES = 'futures'                 # 期货、期权、贵金属
 GATEWAYTYPE_INTERNATIONAL = 'international'     # 外盘
 GATEWAYTYPE_BTC = 'btc'                         # 比特币
 GATEWAYTYPE_DATA = 'data'                       # 数据（非交易）
+
+
+#系统相关
+ENGINETYPE_BACKTESTING = 'backtesting'  # 回测
+ENGINETYPE_TRADING = 'trading'          # 实盘
+
+# 数据库名称
+SETTING_DB_NAME = 'VnTrader_Setting_Db'
+POSITION_DB_NAME = 'VnTrader_Position_Db'
+
+TICK_DB_NAME = 'VnTrader_Tick_Db'
+DAILY_DB_NAME = 'VnTrader_Daily_Db'
+MINUTE_DB_NAME = 'VnTrader_1Min_Db'

@@ -32,7 +32,7 @@ from abc import ABCMeta,abstractmethod,abstractproperty
 
 
 ########################################################################
-class StrategyEngine():
+class StrategyEngine(object):
     """策略引擎"""
 
     # ----------------------------------------------------------------------

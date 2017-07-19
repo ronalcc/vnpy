@@ -67,7 +67,7 @@ class DrEngine(object):
             # working = drSetting['working']
             # if not working:
             #     return
-        self.subscriptMarketData['tick'] = self.mainEngine.query("market","mySubscriptMaketData",{"type":"tick"})
+        self.subscriptMarketData['tick'] = self.mainEngine.dbQuery("market","mySubscriptMaketData",{"type":"tick"})
             
         if 'tick' in self.subscriptMarketData:
                 l = self.subscriptMarketData['tick']
