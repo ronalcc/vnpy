@@ -248,7 +248,7 @@ class CtpMdApi(MdApi):
     def onFrontConnected(self):
         """服务器连接"""
         self.connectionStatus = True
-        print '---market connect---'
+        print '---market connectcc---'
         self.writeLog(text.DATA_SERVER_CONNECTED)
         
         self.login()
@@ -481,7 +481,7 @@ class CtpTdApi(TdApi):
     def onFrontConnected(self):
         """服务器连接"""
         self.connectionStatus = True
-        print '---trade connect---'
+        print '---trade connectcc---'
         self.writeLog(text.TRADING_SERVER_CONNECTED)
         
         if self.requireAuthentication:

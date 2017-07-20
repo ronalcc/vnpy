@@ -36,7 +36,7 @@ class VtGateway(object):
         event = Event(type_=tick.vtSymbol)
         event.dict_['data']  = tick
         event.dict_['id'] = tick.vtSymbol
-        self.eventEngine.putTick(event)
+        self.eventEngine.put(event,TICK_TYPE)
 
     #----------------------------------------------------------------------
     def onTrade(self, trade):
@@ -49,7 +49,7 @@ class VtGateway(object):
         # 特定合约的成交事件
         event2 = Event(type_=EVENT_TRADE+trade.vtSymbol)
         event2.dict_['data'] = trade
-        self.eventEngine.put(event2)        
+        self.eventEngine.put(event2,TRADE_TYPE)
     
     #----------------------------------------------------------------------
     def onOrder(self, order):
@@ -62,7 +62,7 @@ class VtGateway(object):
         # 特定订单编号的事件
         event2 = Event(type_=EVENT_ORDER+order.vtOrderID)
         event2.dict_['data'] = order
-        self.eventEngine.put(event2)
+        self.eventEngine.put(event2,TRADE_TYPE)
     
     #----------------------------------------------------------------------
     def onPosition(self, position):
@@ -75,7 +75,7 @@ class VtGateway(object):
         # 特定合约代码的事件
         event2 = Event(type_=EVENT_POSITION+position.vtSymbol)
         event2.dict_['data'] = position
-        self.eventEngine.put(event2)
+        self.eventEngine.put(event2,TRADE_TYPE)
     
     #----------------------------------------------------------------------
     def onAccount(self, account):
@@ -83,12 +83,12 @@ class VtGateway(object):
         # 通用事件
         event1 = Event(type_=EVENT_ACCOUNT)
         event1.dict_['data'] = account
-        self.eventEngine.put(event1)
+        self.eventEngine.put(event1,TRADE_TYPE)
         
         # 特定合约代码的事件
         event2 = Event(type_=EVENT_ACCOUNT+account.vtAccountID)
         event2.dict_['data'] = account
-        self.eventEngine.put(event2)
+        self.eventEngine.put(event2,TRADE_TYPE)
     
     #----------------------------------------------------------------------
     def onError(self, error):
@@ -96,7 +96,7 @@ class VtGateway(object):
         # 通用事件
         event1 = Event(type_=EVENT_ERROR)
         event1.dict_['data'] = error
-        self.eventEngine.put(event1)    
+        self.eventEngine.put(event1,MSG_TYPE)
         
     #----------------------------------------------------------------------
     def onLog(self, log):
@@ -104,7 +104,7 @@ class VtGateway(object):
         # 通用事件
         event1 = Event(type_=EVENT_LOG)
         event1.dict_['data'] = log
-        self.eventEngine.put(event1)
+        self.eventEngine.put(event1,MSG_TYPE)
         
     #----------------------------------------------------------------------
     def onContract(self, contract):
@@ -112,7 +112,7 @@ class VtGateway(object):
         # 通用事件
         event1 = Event(type_=EVENT_CONTRACT)
         event1.dict_['data'] = contract
-        self.eventEngine.put(event1)        
+        self.eventEngine.put(event1,MSG_TYPE)
     
     #----------------------------------------------------------------------
     def connect(self):

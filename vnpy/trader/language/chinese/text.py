@@ -131,3 +131,7 @@ DATABASE_CONNECTING_FAILED = u'MongoDB连接失败'
 DATA_INSERT_FAILED = u'数据插入失败，MongoDB没有连接'
 DATA_QUERY_FAILED = u'数据查询失败，MongoDB没有连接'
 DATA_UPDATE_FAILED = u'数据更新失败，MongoDB没有连接'
+
+STRATEGY=u'策略'
+STRATEGY_LIST=u'策略列表'
+STRATEGY_LOADED=u'策略已加载'

@@ -20,6 +20,11 @@ EVENT_ACCOUNT = 'eAccount.'             # 账户回报事件
 EVENT_CONTRACT = 'eContract.'           # 合约基础信息回报事件
 EVENT_ERROR = 'eError.'                 # 错误回报事件
 
+# gateway产生的事件的大类
+MSG_TYPE = 'eMsg'                        #通知消息类的事件
+TICK_TYPE = 'eTick'                      #TICK行情事件
+TRADE_TYPE = 'eTrade'                    #交易回报事件
+
 # CTA模块相关
 EVENT_CTA_LOG = 'eCtaLog'               # CTA相关的日志事件
 EVENT_CTA_STRATEGY = 'eCtaStrategy.'    # CTA策略状态变化事件

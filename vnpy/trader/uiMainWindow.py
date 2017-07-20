@@ -214,11 +214,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
         def openStrategyFunction():
             appName = appDetail['appName']
+            strategyType = appDetail['strategyType']
             try:
                 self.widgetDict[appName].show()
             except KeyError:
                 appEngine = self.mainEngine.strategyModulDict[appName]
-                self.widgetDict[appName] = appDetail['appWidget'](appEngine, self.eventEngine)
+                self.widgetDict[appName] = appDetail['appWidget'](appEngine, self.eventEngine,strategyType)
                 self.widgetDict[appName].show()
 
         return openStrategyFunction

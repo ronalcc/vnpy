@@ -60,10 +60,10 @@ class Strategy(object):
 
         #行情事件队列
         self.marketEventQueue = Queue()
-        self.marketThread = Thread(target="marketListner_run")
+        self.marketThread = Thread(target='marketListner_run')
         #交易事件队列
         self.tradeEventQueue = Queue()
-        self.tradeThread = Thread(target="tradeListner_run")
+        self.tradeThread = Thread(target='tradeListner_run')
 
 
         # 处理函数的字典{事件类型：处理函数数组}
@@ -158,7 +158,7 @@ class Strategy(object):
     def startMarketListner(self):
             # 开始监听本策略的行情并订阅行情数据
             # 在事件引擎中注册对本策略的监听
-            self.strategyEngine.eventEngine.strategyMarketListener(self)
+            self.strategyEngine.eventEngine.strategyListener(self)
 
             # 订阅策略涉及的行情数据
             self.subscribeMarket(self.market)

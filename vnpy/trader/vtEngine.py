@@ -102,7 +102,8 @@ class MainEngine(object):
             'appName': appModule.appName,
             'appDisplayName': appModule.appDisplayName,
             'appWidget': appModule.appWidget,
-            'appIco': appModule.appIco
+            'appIco': appModule.appIco,
+            'strategyType':appModule.strategyType
         }
         self.strategyDetailList.append(d)
 
