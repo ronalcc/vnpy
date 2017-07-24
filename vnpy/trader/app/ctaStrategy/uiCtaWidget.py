@@ -58,20 +58,24 @@ class CtaValueMonitor(QtWidgets.QTableWidget):
             row = 0
             while(row<len(list)):
                data = list[row]
+               buttonInstanceManage = QtWidgets.QPushButton(gtext.INSTANCEMANAGE)
                self.setItem(row,0,QtGui.QTableWidgetItem(unicode(data['strategyName'])))
                self.setItem(row, 1, QtGui.QTableWidgetItem(unicode(data['strategyType'])))
                self.setItem(row, 2, QtGui.QTableWidgetItem(unicode(data['comment'])))
                self.setItem(row, 3, QtGui.QTableWidgetItem(unicode(data['author'])))
+               self.setItem(row,4,QtGui.QTableWidgetItem(buttonInstanceManage))
                row +=1
             self.inited = True
         else:
             row = 0
             while(row<len(list)):
               data = list[row]
+              buttonInstanceManage = QtWidgets.QPushButton(gtext.INSTANCEMANAGE)
               self.item(row,0).setText(unicode(data['strategyName']))
               self.item(row,1).setText(unicode(data['strategyType']))
               self.item(row, 2).setText(unicode(data['comment']))
               self.item(row, 3).setText(unicode(data['author']))
+              self.setItem(row, 4, QtGui.QTableWidgetItem(buttonInstanceManage))
 
 
 ########################################################################
@@ -85,9 +89,9 @@ class CtaStrategyManager(QtWidgets.QGroupBox):
        super(CtaStrategyManager, self).__init__(parent)
        self.name = name
        self.initUi()
+
     
     #----------------------------------------------------------------------
-    # ----------------------------------------------------------------------
     def initUi(self):
         """初始化界面"""
         self.setTitle(self.name)
@@ -140,6 +144,8 @@ class CtaStrategyManager(QtWidgets.QGroupBox):
         self.ctaEngine.stopStrategy(self.name)
 
 
+
+
 ########################################################################
 class CtaEngineManager(QtWidgets.QWidget):
     """CTA引擎管理组件"""
@@ -153,6 +159,7 @@ class CtaEngineManager(QtWidgets.QWidget):
         self.strategyLoaded = False
         self.strategyType = strategyType
         self.initUi()
+        self.updateMonitor(strategyType)
         self.resize(1200,900)
 
 
@@ -236,7 +243,12 @@ class CtaEngineManager(QtWidgets.QWidget):
         event.accept()
         
         
-    
+    #----------------------------------------------------------------------
+    def updateMonitor(self,strategyType):
+        """更新查询结果集"""
+        list = self.strategyEngine.mainEngine.dbQuery("strategy", "strategyClass", {"strategyType": strategyType})
+        if len(list)>0:
+          self.strategyManager.strategyTable.updateData(list)
     
     
     

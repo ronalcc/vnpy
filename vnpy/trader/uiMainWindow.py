@@ -202,6 +202,7 @@ class MainWindow(QtWidgets.QMainWindow):
             except KeyError:
                 appEngine = self.mainEngine.appDict[appName]
                 self.widgetDict[appName] = appDetail['appWidget'](appEngine, self.eventEngine)
+                self.widgetDict[appName].initUi()
                 self.widgetDict[appName].show()
                 
         return openAppFunction

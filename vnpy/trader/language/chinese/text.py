@@ -135,3 +135,5 @@ DATA_UPDATE_FAILED = u'数据更新失败，MongoDB没有连接'
 STRATEGY=u'策略'
 STRATEGY_LIST=u'策略列表'
 STRATEGY_LOADED=u'策略已加载'
+
+INSTANCEMANAGE=u'实例管理'
