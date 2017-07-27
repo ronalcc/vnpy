@@ -109,7 +109,7 @@ class StrategyMain(QtWidgets.QWidget):
         # vbox.addWidget(self.strategyTable)
         # vbox.addStretch()
         # w.setLayout(vbox)
-        self.strategyTable = CtaValueMonitor(self)
+        self.strategyTable = strategyInstanceTable(self)
         self.scrollArea.setWidget(self.strategyTable)
         # 组件的日志监控
         self.logMonitor = QtWidgets.QTextEdit()

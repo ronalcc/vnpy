@@ -2,8 +2,10 @@
 	"fontFamily": "微软雅黑",
 	"fontSize": 12,
 
-	"mongoHost": "localhost",
+	"mongoHost": "114.55.61.70",
 	"mongoPort": 27017,
+	"mongoUser":"root",
+	"mongoPwd":"Chen112233",
 	"mongoLogging": true,
 
 	"darkStyle": true,
