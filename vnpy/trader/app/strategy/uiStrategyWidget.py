@@ -9,58 +9,127 @@ from vnpy.event import Event
 from vnpy.trader.vtEvent import *
 from PyQt4 import QtGui
 from abc import ABCMeta,abstractmethod,abstractproperty
+from vnpy.trader.language import text as gtext
 
 
 from vnpy.trader.app.strategy.language import text
 
 
 ########################################################################
-class StrategyManager(QtWidgets.QGroupBox):
-    """策略管理组件"""
-    signal = QtCore.Signal(type(Event()))
+class strategyInstanceTable(QtWidgets.QTableWidget):
+    """表格"""
 
     # ----------------------------------------------------------------------
-    def __init__(self,name,parent=None):
+    def __init__(self, parent=None):
         """Constructor"""
-        super(StrategyManager, self).__init__(parent)
-        self.name = name
+        super(strategyInstanceTable, self).__init__(parent)
+
+        self.keyCellDict = {}
+        self.cellRowList = []
+        self.data = None
+        self.inited = False
 
         self.initUi()
-        # self.updateMonitor()
-        # self.registerEvent()
 
     # ----------------------------------------------------------------------
-    # def updateMonitor(self, event=None):
-    #     """显示最新策略列表"""
-    #     self.strategyTable.updateData(self.strategyEngine.querySetting())
+    def initUi(self):
+        """初始化界面"""
+        self.setRowCount(1)
+        self.verticalHeader().setVisible(False)
+        self.setEditTriggers(self.NoEditTriggers)
+        self.setMaximumHeight(self.sizeHint().height())
+        self.setColumnCount(5)
+        self.setHorizontalHeaderLabels(
+            [text.CTA_STRATEGYNAME, text.CTA_STRATEGYTYPE, text.CTA_COMMENT, text.CTA_AUTHOR, text.CTA_OPER])
 
     # ----------------------------------------------------------------------
-    # def registerEvent(self):
-    #     """注册事件监听"""
-    #     self.signal.connect(self.updateMonitor)
-    #     self.eventEngine.register(EVENT_STRATEGY + self.name, self.signal.emit)
+    def updateData(self, list):
+        self.setRowCount(len(list))
+        # if not self.inited:
 
-    # # ----------------------------------------------------------------------
-    # def init(self):
-    #     """初始化策略"""
-    #     self.ctaEngine.initStrategy(self.name)
-    #
-    # # ----------------------------------------------------------------------
-    # def start(self):
-    #     """启动策略"""
-    #     self.ctaEngine.startStrategy(self.name)
-    #
-    # # ----------------------------------------------------------------------
-    # def stop(self):
-    #     """停止策略"""
-    #     self.ctaEngine.stopStrategy(self.name)
+        row = 0
+        while (row < len(list)):
+            data = list[row]
+            buttonInstanceManage = QtWidgets.QPushButton(gtext.INSTANCEMANAGE)
+            buttonInstanceManage.clicked.connect(lambda: self.openStrategy(data['strategyClass']))
+            self.setItem(row, 0, QtGui.QTableWidgetItem(unicode(data['strategyClass'])))
+            self.setItem(row, 1, QtGui.QTableWidgetItem(unicode(data['strategyType'])))
+            self.setItem(row, 2, QtGui.QTableWidgetItem(unicode(data['comment'])))
+            self.setItem(row, 3, QtGui.QTableWidgetItem(unicode(data['author'])))
+            self.setCellWidget(row, 4, buttonInstanceManage)
+            row += 1
+        self.inited = True
+
+    # -----------------------------------------------------------------------------------------
+    def openStrategy(self, strategyInstanceId):
+        pass
 
 
 ########################################################################
-class EngineManager(QtWidgets.QWidget):
+class StrategyMain(QtWidgets.QWidget):
 
-    def __init__(self, parent=None):
-        pass
+    # ----------------------------------------------------------------------
+    def __init__(self, strategyEngine, eventEngine, strategyType, parent=None):
+            """Constructor"""
+            super(StrategyMain, self).__init__(parent)
+            self.strategyEngine = strategyEngine
+            self.eventEngine = eventEngine
+            self.strategyLoaded = False
+            self.strategyType = strategyType
+            self.initUi()
+            self.updateMonitor(strategyType)
+            self.resize(1600, 1600)
+
+
+            # ----------------------------------------------------------------------
+
+    def initUi(self):
+        """初始化界面"""
+        self.setWindowTitle(gtext.STRATEGY)
+
+        # 按钮
+        newButton = QtWidgets.QPushButton(gtext.CREATE_INSTANCE)
+        viewButton = QtWidgets.QPushButton(gtext.VIEW_STRATEGY)
+
+        newButton.clicked.connect(self.newInstance)
+        viewButton.clicked.connect(self.viewButton)
+        buttonsBox = QtGui.QHBoxLayout()
+        buttonsBox.addWidget(newButton)
+        buttonsBox.addWidget(viewButton)
+        buttonsBox.addStretch()
+
+
+
+        # 滚动区域，放置strategyInstanceList
+        self.scrollArea = QtWidgets.QScrollArea()
+        self.scrollArea.setWidgetResizable(True)
+        # self.strategyManager = CtaStrategyManager(self.strategyType)
+        # w = QtGui.QWidget()
+        # vbox = QtGui.QVBoxLayout()
+        # vbox.addWidget(self.strategyTable)
+        # vbox.addStretch()
+        # w.setLayout(vbox)
+        self.strategyTable = CtaValueMonitor(self)
+        self.scrollArea.setWidget(self.strategyTable)
+        # 组件的日志监控
+        self.logMonitor = QtWidgets.QTextEdit()
+        self.logMonitor.setReadOnly(True)
+        self.logMonitor.setMaximumHeight(200)
+
+        # 设置布局
+        # hbox2 = QtWidgets.QHBoxLayout()
+        # hbox2.addWidget(loadButton)
+        # hbox2.addWidget(initAllButton)
+        # hbox2.addWidget(startAllButton)
+        # hbox2.addWidget(stopAllButton)
+        # hbox2.addWidget(savePositionButton)
+        # hbox2.addStretch()
+        #
+        vbox = QtWidgets.QVBoxLayout()
+        # vbox.addLayout(hbox2)
+        vbox.addWidget(self.scrollArea)
+        vbox.addWidget(self.logMonitor)
+        self.setLayout(vbox)
     #-----------------------------------------------------------------------
     def load(self):
         self.strategyEngine.loadStrategy(self.strategyEngine.querySetting())

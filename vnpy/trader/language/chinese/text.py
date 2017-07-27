@@ -137,3 +137,28 @@ STRATEGY_LIST=u'策略列表'
 STRATEGY_LOADED=u'策略已加载'
 
 INSTANCEMANAGE=u'实例管理'
+
+INIT = u'Init'
+START = u'Start'
+STOP = u'Stop'
+
+CTA_ENGINE_STARTED = u'CTA engine started.'
+
+CTA_STRATEGY = u'CTA Strategy'
+LOAD_STRATEGY = u'Load Strategy'
+INIT_ALL = u'Init All'
+START_ALL = u'Start All'
+STOP_ALL = u'Stop All'
+SAVE_POSITION_DATA = u'Save Position Data'
+CREATE_INSTANCE=u'创建策略实例'
+VIEW_STRATEGY=u'查看策略'
+
+
+
+STRATEGY_TEMPLATE = u'策略模板'
+INNSTANCE_STATUS_ = u'实例状态'
+
+
+STRATEGY_LOADED = u'Strategy loaded.'
+
+SAVE_POSITION_QUESTION = u'Do you want to save strategy position data into database?'

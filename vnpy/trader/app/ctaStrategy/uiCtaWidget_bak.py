@@ -79,7 +79,7 @@ class CtaValueMonitor(QtWidgets.QTableWidget):
 
     #-----------------------------------------------------------------------------------------
     def openStrategy(self,strategyClass):
-        pass
+        uiStrategyInstanceMain()
 ########################################################################
 class CtaStrategyManager(QtWidgets.QGroupBox):
     """策略管理组件"""
@@ -171,7 +171,7 @@ class CtaEngineManager(QtWidgets.QWidget):
         self.setWindowTitle(gtext.STRATEGY)
 
         # 按钮
-        newButton = QtWidgets.QPushButton(text.LOAD_STRATEGY)
+        # loadButton = QtWidgets.QPushButton(text.LOAD_STRATEGY)
         # initAllButton = QtWidgets.QPushButton(text.INIT_ALL)
         # startAllButton = QtWidgets.QPushButton(text.START_ALL)
         # stopAllButton = QtWidgets.QPushButton(text.STOP_ALL)

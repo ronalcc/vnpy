@@ -199,12 +199,15 @@ class BasicMonitor(QtWidgets.QTableWidget):
     signal = QtCore.Signal(type(Event()))
 
     #----------------------------------------------------------------------
-    def __init__(self, mainEngine=None, eventEngine=None, parent=None):
+    def __init__(self, mainEngine=None, eventEngine=None, parent=None,strategyEngine=None):
         """Constructor"""
         super(BasicMonitor, self).__init__(parent)
-        
-        self.mainEngine = mainEngine
+        if strategyEngine != None:
+          self.mainEngine = strategyEngine.mainEngine
+        else :
+          self.mainEngine = mainEngine
         self.eventEngine = eventEngine
+        self.strategyEngine = strategyEngine
         
         # 保存表头标签用
         self.headerDict = OrderedDict()  # 有序字典，key是英文名，value是对应的配置字典
