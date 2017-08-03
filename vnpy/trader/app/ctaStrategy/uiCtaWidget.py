@@ -9,13 +9,48 @@ from vnpy.event import Event
 from vnpy.trader.vtEvent import *
 from PyQt4 import QtGui
 from vnpy.trader.app.strategy.uiStrategyWidget import *
-
+from vnpy.trader.app.strategy.language import  text as stext
 from vnpy.trader.app.ctaStrategy.language import text
 from vnpy.trader.language import text as gtext
 
 ########################################################################
-class CtaValueMonitor(QtWidgets.QTableWidget):
+class CtaValueMonitor(BasicMonitor):
     """表格"""
+
+    # ----------------------------------------------------------------------
+    def __init__(self, mainEngine, eventEngine, parent=None):
+        """Constructor"""
+        super(MarketMonitor, self).__init__(mainEngine, eventEngine, parent)
+
+        # 设置表头有序字典
+        d = OrderedDict()
+        d['strategyName'] = {'chinese': stext.STRATEGYNAME, 'cellType': BasicCell}
+        d['strategyType'] = {'chinese': stext.STRATEGYTYPE, 'cellType': BasicCell}
+        d['comment'] = {'chinese': stext.COMMENT, 'cellType': BasicCell}
+        d['author'] = {'chinese': stext.AUTHOR, 'cellType': BasicCell}
+        d['oper'] = {'chinese': stext.OPER, 'cellType': BasicCell}
+        self.setHeaderDict(d)
+
+        # 设置数据键
+        self.setDataKey('strategyName')
+
+        # 设置监控事件类型
+        self.setEventType(EVENT_TICK)
+
+        # 设置字体
+        self.setFont(BASIC_FONT)
+
+        # 设置允许排序
+        self.setSorting(True)
+
+        # 初始化表格
+        self.initTable()
+
+        # 注册事件监听
+        self.registerEvent()
+
+
+
 
     #----------------------------------------------------------------------
     def __init__(self, parent=None):
@@ -80,70 +115,6 @@ class CtaValueMonitor(QtWidgets.QTableWidget):
     #-----------------------------------------------------------------------------------------
     def openStrategy(self,strategyClass):
         pass
-########################################################################
-class CtaStrategyManager(QtWidgets.QGroupBox):
-    """策略管理组件"""
-    signal = QtCore.Signal(type(Event()))
-
-    #----------------------------------------------------------------------
-    def __init__(self, name, parent=None):
-       """Constructor"""
-       super(CtaStrategyManager, self).__init__(parent)
-       self.name = name
-       self.initUi()
-
-    
-    #----------------------------------------------------------------------
-    def initUi(self):
-        """初始化界面"""
-        self.setTitle(self.name)
-        self.strategyTable = CtaValueMonitor(self)
-
-
-        # self.paramMonitor = CtaValueMonitor(self)
-        # self.varMonitor = CtaValueMonitor(self)
-        #
-        # height = 65
-        # self.paramMonitor.setFixedHeight(height)
-        # self.varMonitor.setFixedHeight(height)
-        #
-        # buttonInit = QtWidgets.QPushButton(text.INIT)
-        # buttonStart = QtWidgets.QPushButton(text.START)
-        # buttonStop = QtWidgets.QPushButton(text.STOP)
-        # buttonInit.clicked.connect(self.init)
-        # buttonStart.clicked.connect(self.start)
-        # buttonStop.clicked.connect(self.stop)
-        #
-        # hbox1 = QtWidgets.QHBoxLayout()
-        # hbox1.addWidget(buttonInit)
-        # hbox1.addWidget(buttonStart)
-        # hbox1.addWidget(buttonStop)
-        # hbox1.addStretch()
-        #
-        hbox2 = QtWidgets.QHBoxLayout()
-        hbox2.addWidget(self.strategyTable)
-        #
-        # hbox3 = QtWidgets.QHBoxLayout()
-        # hbox3.addWidget(self.varMonitor)
-        #
-        vbox = QtWidgets.QVBoxLayout()
-        # vbox.addLayout(hbox1)
-        vbox.addLayout(hbox2)
-        # vbox.addLayout(hbox3)
-        #
-        self.setLayout(vbox)
-
-
-    
-    #----------------------------------------------------------------------
-    def start(self):
-        """启动策略"""
-        self.ctaEngine.startStrategy(self.name)
-        
-    #----------------------------------------------------------------------
-    def stop(self):
-        """停止策略"""
-        self.ctaEngine.stopStrategy(self.name)
 
 
 
@@ -192,7 +163,7 @@ class CtaEngineManager(QtWidgets.QWidget):
         # vbox.addWidget(self.strategyTable)
         # vbox.addStretch()
         # w.setLayout(vbox)
-        self.strategyTable = CtaValueMonitor(self)
+        self.strategyTable = CtaValueMonitor(self,self.strategyEngine.mainEngine,self.eventEngine)
         self.scrollArea.setWidget( self.strategyTable)
         # 组件的日志监控
         self.logMonitor = QtWidgets.QTextEdit()
