@@ -226,9 +226,9 @@ class EventEngine(object):
     def put(self,event,type=MSG_TYPE):
          if type == TICK_TYPE:
              self.__tick_queue_dict[event.dict_['id']].put(event)
-         if type == TRADE_TYPE:
+         elif type == TRADE_TYPE:
              self.__trade_queue.put(event)
-         if type == MSG_TYPE:
+         else :
              self.__msg_queue.put(event)
     #----------------------------------------------------------------------
 

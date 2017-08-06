@@ -1,11 +1,11 @@
 # encoding: UTF-8
 
 from ctaEngine import CtaEngine
-from uiCtaWidget import CtaEngineManager
+from uiCtaListWidget import CtaStrategyListUi
 
 appName = 'CtaStrategy'
 appDisplayName = u'CTA策略'
 appEngine = CtaEngine
-appWidget = CtaEngineManager
+appWidget = CtaStrategyListUi
 appIco = 'cta.ico'
 strategyType = 'CTA'

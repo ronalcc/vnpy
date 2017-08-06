@@ -8,7 +8,7 @@ from vnpy.trader.uiBasicWidget import *
 from vnpy.event import Event
 from vnpy.trader.vtEvent import *
 from PyQt4 import QtGui
-from vnpy.trader.app.strategy.uiStrategyWidget import *
+from vnpy.trader.app.strategy.uiStrategyListWidget import *
 
 from vnpy.trader.app.ctaStrategy.language import text
 from vnpy.trader.language import text as gtext

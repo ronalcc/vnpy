@@ -136,6 +136,8 @@ STRATEGY=u'策略'
 STRATEGY_LIST=u'策略列表'
 STRATEGY_LOADED=u'策略已加载'
 
+STRATEGY_INSTANCE_LIST=u'策略实例列表'
+
 INSTANCEMANAGE=u'实例管理'
 
 INIT = u'Init'
