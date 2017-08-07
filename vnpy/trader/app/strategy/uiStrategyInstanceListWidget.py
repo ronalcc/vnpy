@@ -74,31 +74,33 @@ class UIStrategyInstanceListWidget(QtWidgets.QWidget):
     # ----------------------------------------------------------------------
     def updateMonitor(self, strategyType):
         """更新查询结果集"""
-        list = self.strategyEngine.mainEngine.dbQuery("strategy", "strategyClass", {"strategyType": strategyType})
+        list = self.strategyEngine.mainEngine.dbQuery("strategy", "strategyInstance", {"strategyName": strategyName})
         if len(list) > 0:
             self.strategyTable.updateData(list)
 
 
 ########################################################################
-class StrategyListMonitor(BasicMonitor):
+class StrategyInstanceListMonitor(BasicMonitor):
     """表格"""
 
     # ----------------------------------------------------------------------
-    def __init__(self, mainEngine, eventEngine, parent=None):
+    def __init__(self, strategyEngine, eventEngine, parent=None):
         """Constructor"""
-        super(StrategyListMonitor, self).__init__(mainEngine, eventEngine, parent)
+        super(StrategyInstanceListMonitor, self).__init__(strategyEngine, eventEngine, parent)
 
         # 设置表头有序字典
         d = OrderedDict()
         d['strategyName'] = {'chinese': stext.STRATEGYNAME, 'cellType': BasicCell}
-        d['strategyType'] = {'chinese': stext.STRATEGYTYPE, 'cellType': BasicCell}
-        d['comment'] = {'chinese': stext.COMMENT, 'cellType': BasicCell}
-        d['author'] = {'chinese': stext.AUTHOR, 'cellType': BasicCell}
+        d['strategyInstanceName'] = {'chinese': stext.STRATEGY_INSTANCE, 'cellType': BasicCell}
         d['oper'] = {'chinese': stext.OPER, 'cellType': BasicCell}
+        d['instanceStatus'] = {'chinese': stext.STRATEGY_INSTANCE_STATUS, 'cellType': BasicCell}
+        d['startDate'] = {'chinese': stext.STARTDATE, 'cellType': BasicCell}
+        d['endDate'] = {'chinese': stext.ENDDATE, 'cellType': BasicCell}
+        d['comment'] = {'chinese': stext.COMMENT, 'cellType': BasicCell}
         self.setHeaderDict(d)
 
         # 设置数据键
-        self.setDataKey('strategyName')
+        self.setDataKey('strategyInstanceName')
 
         # 设置监控事件类型
         self.setEventType(EVENT_TIMER)
@@ -118,36 +120,39 @@ class StrategyListMonitor(BasicMonitor):
 
     #------------------------------------------------
     def initTable(self):
-        super(StrategyListMonitor, self).initTable()
+        super(StrategyInstanceListMonitor, self).initTable()
 
     #----------------------------------------------------------------------
     def updateData(self, list):
         self.setRowCount(len(list))
-        #if not self.inited:
-
         row = 0
         while(row<len(list)):
                data = list[row]
-               buttonInstanceManage = QtWidgets.QPushButton(gtext.INSTANCEMANAGE)
-               buttonInstanceManage.clicked.connect(lambda:self.openStrategy(data['strategyClass']))
-               self.setItem(row,0,QtGui.QTableWidgetItem(unicode(data['strategyClass'])))
-               self.setItem(row, 1, QtGui.QTableWidgetItem(unicode(data['strategyType'])))
-               self.setItem(row, 2, QtGui.QTableWidgetItem(unicode(data['comment'])))
-               self.setItem(row, 3, QtGui.QTableWidgetItem(unicode(data['author'])))
-               self.setCellWidget(row,4,buttonInstanceManage)
+               buttonInitInstance = QtWidgets.QPushButton(text.INIT)
+               buttonStartInstance = QtWidgets.QPushButton(text.START)
+               buttonViewInstance = QtWidgets.QPushButton(text.VIEW)
+               buttonInitInstance.clicked.connect(lambda:self.initInstance(data['strategyInstanceName']))
+               buttonStartInstance.clicked.connect(lambda:self.stratInstance(data['strategyInstanceName']))
+               buttonViewInstance.clicked.connect(lambda:self.viewInstance(data['strategyInstanceName']))
+               hbox = QtWidgets.QHBoxLayout()
+               hbox.addWidget(buttonInitInstance)
+               hbox.addWidget(buttonStartInstance)
+               hbox.addWidget(buttonViewInstance)
+
+
+
+               self.setItem(row,0,QtGui.QTableWidgetItem(unicode(data['strategyName'])))
+               self.setItem(row, 1, QtGui.QTableWidgetItem(unicode(data['strategyInstanceName'])))
+               self.setCellWidget(row,2,hbox)
+               self.setItem(row, 3, QtGui.QTableWidgetItem(unicode(data['instanceStatus'])))
+               self.setItem(row, 4, QtGui.QTableWidgetItem(unicode(data['startDate'])))
+               self.setItem(row, 5, QtGui.QTableWidgetItem(unicode(data['endDate'])))
+               self.setItem(row, 6, QtGui.QTableWidgetItem(unicode(data['comment'])))
+
                row +=1
         self.inited = True
 
-    #-----------------------------------------------------------------------------------------
-    @abstractmethod
-    def openStrategy(self,strategyClass):
-        pass
 
-
-    #------------------------------------------------------
-    @abstractmethod
-    def registerEvent(self):
-        pass
 
 
 

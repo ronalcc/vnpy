@@ -65,10 +65,13 @@ class UICtaInstanceListWidget(UIStrategyInstanceListWidget):
 
 
 ########################################################################
-class CtaStrategyInstanceListMonitor(StrategyListMonitor):
+class CtaStrategyInstanceListMonitor(StrategyInstanceListMonitor):
 
-    def __init__(self,strategtyEngine, eventEngine, parent=None):
-        pass
+    def __init__(self,strategyEngine, eventEngine, parent=None):
+        super(CtaStrategyInstanceListMonitor,self).__init__(strategyEngine,eventEngine,parent)
+
+
+
 
     
     

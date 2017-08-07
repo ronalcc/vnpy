@@ -2,7 +2,7 @@
     "_id" : ObjectId("5950a84e67e9eb6345d5799f"),
     "strategyName" : "AtrRsiStrategy",
     "strategyInstanceName" : "strategy1",
-    "status" : "0",
+    "status" : "0", 
     "startDate" : "20170617",
     "endDate" : "20170725",
     "legs" : [ 
