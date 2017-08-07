@@ -11,3 +11,7 @@ STRATEGYTYPE = u'策略类型'
 COMMENT = u'策略说明'
 AUTHOR = u'策略作者'
 OPER = u'操作'
+
+# button
+BUTTON_NEW = u'新建'
+BUTTON_SEARCH = u'查找'

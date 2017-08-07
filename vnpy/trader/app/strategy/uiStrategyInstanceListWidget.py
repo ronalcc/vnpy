@@ -26,7 +26,7 @@ class UIStrategyInstanceListWidget(QtWidgets.QWidget):
     def __init__(self, strategyEngine, eventEngine, strategyClass, parent=None):
         """Constructor"""
         super(UIStrategyInstanceListWidget, self).__init__(parent)
-        self.mainEngine = strategyEngine
+        self.strategyEngine = strategyEngine
         self.eventEngine = eventEngine
         self.strategyClass = strategyClass
         self.initUi()
