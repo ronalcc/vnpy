@@ -105,6 +105,20 @@ class StrategyEngine(object):
             self.strategyDict[_id] = strategy
         return strategy
 
+    # ----------------------------------------------------------------------
+    def initStrategy(self, _id):
+            """初始化策略"""
+            if _id in self.strategyDict:
+                strategy = self.strategyDict[_id]
+
+                if not strategy.inited:
+                    strategy.inited = True
+                    self.callStrategyFunc(strategy, strategy.onInit)
+                else:
+                    self.writeCtaLog(u'请勿重复初始化策略实例：%s' % _id)
+            else:
+                self.writeCtaLog(u'策略实例不存在：%s' % _id)
+
     # ---------------------------------------------------------------------
 
     def startStrategy(self, _id):
@@ -119,19 +133,7 @@ class StrategyEngine(object):
         else:
             self.writeCtaLog(u'策略实例不存在：%s' % _id)
 
-    # ----------------------------------------------------------------------
-    def initStrategy(self, _id):
-            """初始化策略"""
-            if _id in self.strategyDict:
-                strategy = self.strategyDict[_id]
 
-                if not strategy.inited:
-                    strategy.inited = True
-                    self.callStrategyFunc(strategy, strategy.onInit)
-                else:
-                    self.writeCtaLog(u'请勿重复初始化策略实例：%s' % _id)
-            else:
-                self.writeCtaLog(u'策略实例不存在：%s' % _id)
 
     # ----------------------------------------------------------------------
     def stopStrategy(self, name):

@@ -11,9 +11,9 @@ class UICtaInstanceListWidget(UIStrategyInstanceListWidget):
     """CTA策列列表"""
 
     #----------------------------------------------------------------------
-    def __init__(self,strategtyEngine, eventEngine,strategyType, parent=None):
+    def __init__(self,strategtyEngine, eventEngine,strategyClass, parent=None):
         """Constructor"""
-        super(UICtaInstanceListWidget, self).__init__(strategtyEngine, eventEngine,strategyType,parent)
+        super(UICtaInstanceListWidget, self).__init__(strategtyEngine, eventEngine,strategyClass,parent)
 
 
     #----------------------------------------------------------------------
@@ -23,12 +23,16 @@ class UICtaInstanceListWidget(UIStrategyInstanceListWidget):
         #查询输入区
         hbox1 = QtWidgets.QHBoxLayout()
         newButton = QtWidgets.QPushButton(text.BUTTON_NEW)
-        searchButton = QtWidgets.QPushButton(text.BUTTON_SEARCH)
         newButton.clicked.connect(self.create)
-        searchButton.clicked.connect(self.search)
+        self.combo = QtGui.QComboBox(self)
+        self.combo.addItem(unicode("全部"))
+        self.combo.addItem(unicode("运行"))
+        self.combo.addItem(unicode("停止"))
+        self.combo.addItem(unicode("废止"))
+        self.connect(self.combo, QtCore.SIGNAL('activated(QString)'),self.onActivated)
+        hbox1.addWidget(self.combo)
         hbox1.addWidget(newButton)
-        hbox1.addWidget(searchButton)
-
+        hbox1.addStretch()
 
 
 
@@ -37,13 +41,15 @@ class UICtaInstanceListWidget(UIStrategyInstanceListWidget):
 
 
         # 列表
-        self.scrollArea = QtWidgets.QScrollArea()
-        self.scrollArea.setWidgetResizable(True)
+        hbox2 = QtWidgets.QHBoxLayout()
+        scrollArea = QtWidgets.QScrollArea()
+        scrollArea.setWidgetResizable(True)
         self.strategyTable = CtaStrategyInstanceListMonitor(self.strategyEngine, self.eventEngine)
-        self.scrollArea.setWidget(self.strategyTable)
+        scrollArea.setWidget(self.strategyTable)
         vbox = QtWidgets.QVBoxLayout()
-        vbox.addWidget(self.scrollArea)
-        vbox.addWidget(hbox1)
+        vbox.addLayout(hbox1)
+        self.strategyTable.strategyClass = self.strategyClass
+        vbox.addWidget(scrollArea)
         self.setLayout(vbox)
 
     #-----------------------------------------------------------
@@ -61,17 +67,72 @@ class UICtaInstanceListWidget(UIStrategyInstanceListWidget):
         """查看策略实例"""
         pass
 
+    def onActivated(self):
+        cindex = self.combo.currentIndex()
+        strategyStatus = None
+        if cindex==1:
+            strategyStatus = '1'
+        elif cindex==2:
+            strategyStatus = '0'
+        elif cindex == 3:
+            strategyStatus = '2'
+        else:
+            strategyStatus = None
+
+        self.updateMonitor(self.strategyClass, strategyStatus)
+
+        self.strategyTable.strategyStatus = strategyStatus
 
 
 
-########################################################################
+            ########################################################################
 class CtaStrategyInstanceListMonitor(StrategyInstanceListMonitor):
 
     def __init__(self,strategyEngine, eventEngine, parent=None):
         super(CtaStrategyInstanceListMonitor,self).__init__(strategyEngine,eventEngine,parent)
 
 
+    #------------------------------------------------
+    def initTable(self):
+        super(CtaStrategyInstanceListMonitor, self).initTable()
+        self.horizontalHeader().resizeSection(0,250)
+        self.horizontalHeader().resizeSection(1,250)
+        self.horizontalHeader().resizeSection(2,100)
+        self.horizontalHeader().resizeSection(3,100)
+        self.horizontalHeader().resizeSection(4,100)
+        self.horizontalHeader().resizeSection(5, 150)
+        self.horizontalHeader().resizeSection(6, 150)
+        self.horizontalHeader().resizeSection(7, 150)
+        self.horizontalHeader().resizeSection(8, 100)
+        self.horizontalHeader().resizeSection(9, 100)
+        self.horizontalHeader().resizeSection(10, 100)
+        self.setColumnWidth(0,250)
+        self.setColumnWidth(1,250)
+        self.setColumnWidth(2,100)
+        self.setColumnWidth(3,100)
+        self.setColumnWidth(4,100)
+        self.setColumnWidth(5, 150)
+        self.setColumnWidth(6, 150)
+        self.setColumnWidth(7, 150)
+        self.setColumnWidth(8, 100)
+        self.setColumnWidth(9, 100)
+        self.setColumnWidth(10, 100)
 
+        self.strategyClass=''
+        self.instanceStatus=''
+
+
+    #----------------------------------------------------------------------
+    def updateEvent(self, event):
+        """收到事件更新"""
+        if self.instanceStatus == None:
+            list = self.strategyEngine.mainEngine.dbQuery("strategy", "strategyInstance",
+                                                          {"strategyClass": self.strategyClass})
+        else:
+            list = self.strategyEngine.mainEngine.dbQuery("strategy", "strategyInstance",
+                                                          {"strategyClass": self.strategyClass,
+                                                           "instanceStatus": self.instanceStatus})
+        self.updateData(list)
 
     
     

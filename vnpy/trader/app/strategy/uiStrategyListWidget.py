@@ -85,9 +85,9 @@ class StrategyListMonitor(BasicMonitor):
     """表格"""
 
     # ----------------------------------------------------------------------
-    def __init__(self, strategyEngine, eventEngine, parent=None):
+    def __init__(self, mainEngine, eventEngine,strategyEngine=None,parent=None):
         """Constructor"""
-        super(StrategyListMonitor, self).__init__(strategyEngine, eventEngine, parent)
+        super(StrategyListMonitor, self).__init__(mainEngine, eventEngine, strategyEngine)
 
         # 设置表头有序字典
         d = OrderedDict()

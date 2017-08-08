@@ -30,7 +30,7 @@ class UICtaListWidget(UIStrategyListWidget):
         # 滚动区域，放置strategyManager
         self.scrollArea = QtWidgets.QScrollArea()
         self.scrollArea.setWidgetResizable(True)
-        self.strategyTable = CtaStrategyListMonitor(self.strategyEngine, self.eventEngine)
+        self.strategyTable = CtaStrategyListMonitor(self.strategyEngine.mainEngine,self.eventEngine,self.strategyEngine)
         self.scrollArea.setWidget(self.strategyTable)
         vbox = QtWidgets.QVBoxLayout()
         vbox.addWidget(self.scrollArea)
@@ -39,9 +39,9 @@ class UICtaListWidget(UIStrategyListWidget):
 ########################################################################
 class CtaStrategyListMonitor(StrategyListMonitor):
     """表格"""
-    def __init__(self, strategyEngine, eventEngine, parent=None):
+    def __init__(self, mainEngine, eventEngine,strategyEngine=None,parent=None):
         """Constructor"""
-        super(CtaStrategyListMonitor, self).__init__(strategyEngine, eventEngine, parent)
+        super(CtaStrategyListMonitor, self).__init__(mainEngine,eventEngine,strategyEngine)
 
 
     #------------------------------------------------
@@ -62,8 +62,8 @@ class CtaStrategyListMonitor(StrategyListMonitor):
 
     #-----------------------------------------------------------------------------------------
     def openStrategy(self,strategyClass):
-        self.strategyInstanceList = UICtaInstanceListWidget(self.strategyEngine, self.eventEngine,strategyClass)
-    
+        self.ctaInstanceListWidget = UICtaInstanceListWidget(self.strategyEngine, self.eventEngine,strategyClass)
+        self.ctaInstanceListWidget.show()
     
 
 

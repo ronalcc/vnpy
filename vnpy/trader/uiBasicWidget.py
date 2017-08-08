@@ -199,7 +199,7 @@ class BasicMonitor(QtWidgets.QTableWidget):
     signal = QtCore.Signal(type(Event()))
 
     #----------------------------------------------------------------------
-    def __init__(self, mainEngine=None, eventEngine=None, parent=None,strategyEngine=None):
+    def __init__(self, mainEngine=None, eventEngine=None, strategyEngine=None,parent=None,):
         """Constructor"""
         super(BasicMonitor, self).__init__(parent)
         if strategyEngine != None:

@@ -11,6 +11,7 @@ from PyQt4 import QtGui
 from abc import ABCMeta,abstractmethod,abstractproperty
 from vnpy.trader.language import text as gtext
 from vnpy.trader.app.strategy.language import  text as stext
+from vnpy.trader.utils import CommonUtils
 
 
 from vnpy.trader.app.strategy.language import text
@@ -72,11 +73,15 @@ class UIStrategyInstanceListWidget(QtWidgets.QWidget):
         event.accept()
 
     # ----------------------------------------------------------------------
-    def updateMonitor(self, strategyType):
-        """更新查询结果集"""
-        list = self.strategyEngine.mainEngine.dbQuery("strategy", "strategyInstance", {"strategyName": strategyName})
-        if len(list) > 0:
-            self.strategyTable.updateData(list)
+    def updateMonitor(self, strategyClass,instanceStatus=None):
+       """更新查询结果集"""
+       if instanceStatus == None:
+        list = self.strategyEngine.mainEngine.dbQuery("strategy", "strategyInstance", {"strategyClass": strategyClass})
+       else:
+        list = self.strategyEngine.mainEngine.dbQuery("strategy", "strategyInstance", {"strategyClass": strategyClass,"instanceStatus":instanceStatus})
+
+
+       self.strategyTable.updateData(list)
 
 
 ########################################################################
@@ -90,12 +95,16 @@ class StrategyInstanceListMonitor(BasicMonitor):
 
         # 设置表头有序字典
         d = OrderedDict()
-        d['strategyName'] = {'chinese': stext.STRATEGYNAME, 'cellType': BasicCell}
+        d['strategyClass'] = {'chinese': stext.STRATEGYNAME, 'cellType': BasicCell}
         d['strategyInstanceName'] = {'chinese': stext.STRATEGY_INSTANCE, 'cellType': BasicCell}
-        d['oper'] = {'chinese': stext.OPER, 'cellType': BasicCell}
+        d['oper1'] = {'chinese': stext.OPER, 'cellType': BasicCell}
+        d['oper2'] = {'chinese': stext.OPER, 'cellType': BasicCell}
+        d['oper3'] = {'chinese': stext.OPER, 'cellType': BasicCell}
         d['instanceStatus'] = {'chinese': stext.STRATEGY_INSTANCE_STATUS, 'cellType': BasicCell}
         d['startDate'] = {'chinese': stext.STARTDATE, 'cellType': BasicCell}
         d['endDate'] = {'chinese': stext.ENDDATE, 'cellType': BasicCell}
+        d['brokerId'] = {'chinese': stext.BROKERID, 'cellType': BasicCell}
+        d['userId'] = {'chinese': stext.TRADER, 'cellType': BasicCell}
         d['comment'] = {'chinese': stext.COMMENT, 'cellType': BasicCell}
         self.setHeaderDict(d)
 
@@ -111,11 +120,14 @@ class StrategyInstanceListMonitor(BasicMonitor):
         # 设置允许排序
         self.setSorting(True)
 
+
         # 初始化表格
         self.initTable()
 
+        self.dictUtils = CommonUtils()
+
         # 注册事件监听
-        self.registerEvent()
+        #self.registerEvent()
 
 
     #------------------------------------------------
@@ -128,29 +140,67 @@ class StrategyInstanceListMonitor(BasicMonitor):
         row = 0
         while(row<len(list)):
                data = list[row]
-               buttonInitInstance = QtWidgets.QPushButton(text.INIT)
-               buttonStartInstance = QtWidgets.QPushButton(text.START)
+
+               if data['instanceStatus'] =='0':
+                 buttonStartInstance = QtWidgets.QPushButton(text.START)
+                 buttonStartInstance.clicked.connect(lambda: self.stratInstance(data['_id']))
+               elif data['instanceStatus'] =='1':
+                   buttonStartInstance = QtWidgets.QPushButton(text.STOP)
+                   buttonStartInstance.clicked.connect(lambda: self.stopInstance(data['_id']))
+
+
                buttonViewInstance = QtWidgets.QPushButton(text.VIEW)
-               buttonInitInstance.clicked.connect(lambda:self.initInstance(data['strategyInstanceName']))
-               buttonStartInstance.clicked.connect(lambda:self.stratInstance(data['strategyInstanceName']))
-               buttonViewInstance.clicked.connect(lambda:self.viewInstance(data['strategyInstanceName']))
-               hbox = QtWidgets.QHBoxLayout()
-               hbox.addWidget(buttonInitInstance)
-               hbox.addWidget(buttonStartInstance)
-               hbox.addWidget(buttonViewInstance)
+               buttonDestroyInstance = QtWidgets.QPushButton(text.DESTROY)
+
+               buttonViewInstance.clicked.connect(lambda:self.viewInstance(data['_id']))
+               buttonDestroyInstance.clicked.connect(lambda:self.destroyInstance(data['_id']))
 
 
 
-               self.setItem(row,0,QtGui.QTableWidgetItem(unicode(data['strategyName'])))
+               self.setItem(row,0,QtGui.QTableWidgetItem(unicode(data['strategyClass'])))
                self.setItem(row, 1, QtGui.QTableWidgetItem(unicode(data['strategyInstanceName'])))
-               self.setCellWidget(row,2,hbox)
-               self.setItem(row, 3, QtGui.QTableWidgetItem(unicode(data['instanceStatus'])))
-               self.setItem(row, 4, QtGui.QTableWidgetItem(unicode(data['startDate'])))
-               self.setItem(row, 5, QtGui.QTableWidgetItem(unicode(data['endDate'])))
-               self.setItem(row, 6, QtGui.QTableWidgetItem(unicode(data['comment'])))
+               if data['instanceStatus'] !='2':
+                  self.setCellWidget(row, 2, buttonStartInstance)
+               else:
+                   self.setItem(row, 2, QtGui.QTableWidgetItem(text.DESTROYED))
+               self.setCellWidget(row, 3, buttonViewInstance)
+               self.setCellWidget(row,4,buttonDestroyInstance)
+
+               self.setItem(row, 5, QtGui.QTableWidgetItem(unicode(self.dictUtils.dictValue('strategyInstanceStatus',data['instanceStatus']))))
+               self.setItem(row, 6, QtGui.QTableWidgetItem(unicode(data['startDate'])))
+               self.setItem(row, 7, QtGui.QTableWidgetItem(unicode(data['endDate'])))
+               self.setItem(row, 8, QtGui.QTableWidgetItem(unicode(data['brokerId'])))
+               self.setItem(row, 9, QtGui.QTableWidgetItem(unicode(data['userId'])))
+               self.setItem(row, 10, QtGui.QTableWidgetItem(unicode(data['comment'])))
 
                row +=1
         self.inited = True
+
+    #------------------------------------------------
+    def startInstance(self,instanceId):
+        self.strategyEngine.loadStrategy(instanceId)
+        self.strategyEngine.initStrategy(instanceId)
+        self.strategyEngine.startStrategy(instanceId)
+
+
+    #------------------------------------------------
+    def stopInstance(self):
+        pass
+
+
+
+    #------------------------------------------------
+    def viewInstance(self):
+        pass
+
+
+    #------------------------------------------------
+    def destroyInstance(self):
+        pass
+
+
+
+
 
 
 
